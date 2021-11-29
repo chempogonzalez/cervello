@@ -2,9 +2,20 @@
   "name": "cervello",
   "version": "0.9.0",
   "description": "Simplest and trully reactive state manager for React",
-  "main": "index.js",
+  "main": "./dist/cervello.cjs",
+  "module": "./dist/cervello.esm.js",
+  "unpkg": "./dist/cervello.umd.js",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "browser": "./dist/cervello.esm.js",
+    "import": "./dist/cervello.esm.js",
+    "umd": "./dist/cervello.umd.js",
+    "require": "./dist/cervello.cjs",
+    "default": "./dist/cervello.modern.js"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "microbundle"
   },
   "repository": {
     "type": "git",
@@ -38,7 +49,9 @@
     "eslint": "7.32.0",
     "eslint-config-standard-jsx": "10.0.0",
     "eslint-config-standard-with-typescript": "21.0.1",
+    "microbundle": "0.14.2",
     "react": "17.0.2",
-    "rxjs": "7.4.0"
+    "rxjs": "7.4.0",
+    "typescript": "4.5.2"
   }
 }

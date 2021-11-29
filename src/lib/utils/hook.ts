@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { filter, map, switchMap, tap, of, combineLatest, startWith } from 'rxjs'
-import type { Subscription, BehaviorSubject, Subject } from 'rxjs'
 import { useEffect, useRef, useState } from 'react'
-import { proxifyStore } from '.'
+import { proxifyStore } from './proxy'
+import type { Subscription, BehaviorSubject, Subject } from 'rxjs'
 
 interface CreateHookParams<T> {
   initialStore: T | Partial<T>

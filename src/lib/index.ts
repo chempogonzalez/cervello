@@ -16,10 +16,9 @@ export function cervello <T> (initialValue: T): {
   $: Store<T>
   useCervello: () => Store<T>
 } {
-  const initialStore =
-    typeof initialValue !== 'object' || !Array.isArray(initialValue)
-      ? { value: initialValue }
-      : initialValue
+  const initialStore = typeof initialValue !== 'object' || !Array.isArray(initialValue)
+    ? { value: initialValue }
+    : initialValue
 
   type StoreType = Store<T>
 
