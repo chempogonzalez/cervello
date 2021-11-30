@@ -21,16 +21,16 @@ yarn add cervello
 
 
 ## 💻 **Usage**
-The `cervello` function let's you initialize it a *string, number, object or array*. It provides you the following processed object:
+The `cervello` function let's you initialize it with a *string, number, object or array (Map is currently in develop)*. It provides you the following processed array:
 ```ts
 [
-  /** First Item:
-   * Reactive value to be used to get or set items
+  /** - First Item:
+   *    Reactive value to be used to get or set items
    */
   reactiveValue,
 
-  /** Second Item:
-   * React hook to has a synchronized reactive value
+  /** - Second Item:
+   *    React hook to has a synchronized reactive value
    */
   useCervello
 ]
