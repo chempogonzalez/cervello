@@ -7,6 +7,7 @@
   "unpkg": "./dist/cervello.umd.js",
   "type": "module",
   "source": "src/index.ts",
+  "types": "./types/index.d.ts",
   "exports": {
     "browser": "./dist/cervello.esm.js",
     "import": "./dist/cervello.esm.js",
@@ -14,6 +15,10 @@
     "require": "./dist/cervello.cjs",
     "default": "./dist/cervello.modern.js"
   },
+  "files": [
+    "dist",
+    "types"
+  ],
   "scripts": {
     "build": "microbundle"
   },
