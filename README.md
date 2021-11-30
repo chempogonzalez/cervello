@@ -30,13 +30,17 @@ The `cervello` function let's you initialize it with a *string, number, object o
   reactiveValue,
 
   /** - Second Item:
-   *    React hook to has a synchronized reactive value
+   *    React hook.
+   *    It returns the reactiveValue and makes a re-render only if
+   *    it has changed to keep it synchronized
    */
   useCervello
 ]
 ```
+> **IMPORTANT:** You can **only destructure** when you are getting an attribute/item. If you need to **set a new value it must be done without destructuring** to ensure reactivity
 
-### Example (simple global store)
+### 🤓 Examples
+#### ☀️ Global store
 ```ts
 // - store.ts
 import { cervello } from 'cervello'
@@ -73,4 +77,50 @@ const CounterButton = () => (
     Increment
   </button>
 )
+```
+
+
+#### 🔖 Local store/state
+```tsx
+import { cervello } from 'cervello'
+
+/** escape first item result because we only need the hook */
+const [, useCityList] = cervello(['Seville', 'Huelva'])
+
+const Example = () => {
+  const cityList = useCityList()
+
+  return (
+    <ul>
+      {cityList.map((city) => (
+        <li>{city}</li>
+      ))}
+    </ul>
+
+    <button onClick={e => cityList.push('Cadiz')}>
+      Add Cadiz
+    </button>
+  )
+}
+```
+
+#### 📝 String or number state
+As string and number couldn't be proxified in a simpler manner they need to be used with **".value"** attribute (similarly as "useRef with *.current*)"
+
+```tsx
+import { cervello } from 'cervello'
+
+const [, useHelloString] = cervello('Hello')
+
+const HelloWorld = () => {
+  const helloString = useHelloString()
+
+  return (
+    <p>{helloString.value}</p>
+    <button onClick={e => helloString.value += ' World'}>
+      Add "world"
+    </button>
+  )
+}
+
 ```
