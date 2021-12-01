@@ -25,7 +25,11 @@ The `cervello` function let's you initialize it with a *string, number, object o
 ```ts
 [
   /** - First Item:
-   *    Reactive value to be used to get or set items
+   *    Reactive value to be used to set items (reactively)
+   *    producing updates in components listening values
+   *    from the hook
+   * 
+   *    (Mainly to be used outside react components)
    */
   reactiveValue,
 
@@ -45,14 +49,13 @@ The `cervello` function let's you initialize it with a *string, number, object o
 // - store.ts
 import { cervello } from 'cervello'
 
-const computedResult = cervello(
+
+/** Export it with the names you prefer to be used/imported */
+export const [store, useStore] = cervello(
   {
     count: 0,
     //...more attributes
   })
-
-/** Export it with the names you prefer to be used/imported */
-export const [store, useStore] = computedResult
 ```
 
 

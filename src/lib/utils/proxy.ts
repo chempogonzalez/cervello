@@ -9,34 +9,33 @@ function proxyHandlerGenerator <T, K extends keyof T> (
 ) {
   return {
     get: function (_: any, prop: string): T[K] | null {
-      const { value: currentStore } = store$$
+      const currentStore = store$$.value as any
 
       if (prop in currentStore) {
-        const observedAttributes = attributes?.current ?? []
-        if (attributes && !observedAttributes.includes(prop)) {
-          observedAttributes.push(prop)
+        const observedAttributes = [...(attributes?.current || [])]
 
-          // TODO: review if assignement can be removed
+        if (attributes
+          && !observedAttributes.includes(prop)
+          && currentStore.hasOwnProperty(prop)
+        ) {
+          observedAttributes.push(prop)
           attributes.current = observedAttributes
         }
-
-        return (currentStore as any)[prop] as T[K]
+        return currentStore[prop] as T[K]
       }
       return null
     },
-    set: function (_: any, prop: string, value: any) {
-      const { value: currentStore } = store$$
+    set: function (_: any, prop: any, value: any) {
+      const currentStore = store$$.value as any
+      
+      currentStore[prop] = value
+      store$$.next(currentStore)
+      
+      const checker = Array.isArray(currentStore) ? !isNaN(+prop) : true
+      
+      /** Trigger change in subscription to sync values listened by hook */
+      if (currentStore.hasOwnProperty(prop) && checker) attributeModified$$.next(prop)
 
-      if (prop in currentStore) {
-        if (Array.isArray(currentStore)) {
-          const newArrayToPush = [...currentStore] as Array<unknown>
-          newArrayToPush[+prop] = value
-          store$$.next(newArrayToPush as unknown as T)
-        } else {
-          store$$.next({ ...currentStore, [prop]: value })
-        }
-        attributeModified$$.next(prop)
-      }
       return true
     },
   }

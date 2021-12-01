@@ -20,7 +20,8 @@
     "types"
   ],
   "scripts": {
-    "build": "microbundle"
+    "build": "microbundle",
+    "dev": "microbundle watch"
   },
   "repository": {
     "type": "git",

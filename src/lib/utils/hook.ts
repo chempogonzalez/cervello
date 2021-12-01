@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { filter, map, switchMap, tap, of, combineLatest, startWith } from 'rxjs'
+import { filter, map, tap, withLatestFrom } from 'rxjs'
 import { useEffect, useRef, useState } from 'react'
 import { proxifyStore } from './proxy'
 import type { Subscription, BehaviorSubject, Subject } from 'rxjs'
@@ -15,11 +15,8 @@ export const createReactHook = <T>({
   store$$,
   attributeModified$$,
 }: CreateHookParams<T>): (() => T) => {
-  const store$ = combineLatest([
-    store$$,
-    attributeModified$$.pipe(startWith(null)),
-  ])
 
+  const isStoreArray = Array.isArray(initialStore)
 
   return () => {
     /** Attributes or indexes (slices) observed from components (getters) */
@@ -40,40 +37,21 @@ export const createReactHook = <T>({
 
       /** If there are attributes observed (getters) */
       if (observedAttributes.current) {
-        sub = store$
-          .pipe(
-            filter(([_, attributeModified]) =>
-              attributeModified === null
-                ? false
-                : observedAttributes.current!.includes(attributeModified),
-            ),
-            switchMap(([store, _]) =>
-              of(observedAttributes.current!.reduce<Partial<T>>((acc, curr) => {
-                if (curr in store) {
-                  (acc as any)[curr] = (store as any)[curr]
-                }
-                return acc
-              }, {})),
-            ),
-            map((processedStore: Partial<T>) =>
+        sub = attributeModified$$.pipe(
+            isStoreArray
+              ? (v) => v
+              : filter((attributeModified) => !!(attributeModified && observedAttributes.current!.includes(attributeModified))),
+            withLatestFrom(store$$),
+            map(([_, store]) =>
               proxifyStore<T>({
-                initialStore: processedStore,
+                initialStore: store,
                 obsAttributes: observedAttributes,
                 store$$,
                 attributeModified$$,
               }),
-              // new Proxy(
-              //   processedStore,
-              //   proxyHandlerGenerator(
-              //     observedAttributes,
-              //     store$$,
-              //     attributeModified$$,
-              //   ),
-              // ),
             ),
-            tap(setStore),
-          )
-          .subscribe()
+            tap(setStore)
+          ).subscribe()
       }
 
       return () => sub?.unsubscribe()

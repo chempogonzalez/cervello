@@ -3,12 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "ES2017",
-    ],
+    "lib": ["DOM", "DOM.Iterable", "ESNext", "ES2017"],
     "downlevelIteration": true,
     "skipLibCheck": true,
     "strict": true,
