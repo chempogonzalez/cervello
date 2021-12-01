@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable no-prototype-builtins */
 import type { MutableRefObject } from 'react'
 import type { BehaviorSubject, Subject } from 'rxjs'
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+
 function proxyHandlerGenerator <T, K extends keyof T> (
   attributes: MutableRefObject<Array<string> | undefined> | null,
   store$$: BehaviorSubject<T>,
@@ -12,11 +14,11 @@ function proxyHandlerGenerator <T, K extends keyof T> (
       const currentStore = store$$.value as any
 
       if (prop in currentStore) {
-        const observedAttributes = [...(attributes?.current || [])]
+        const observedAttributes = [...(attributes?.current ?? [])]
 
-        if (attributes
-          && !observedAttributes.includes(prop)
-          && currentStore.hasOwnProperty(prop)
+        if (attributes &&
+          !observedAttributes.includes(prop) &&
+          currentStore.hasOwnProperty(prop)
         ) {
           observedAttributes.push(prop)
           attributes.current = observedAttributes
@@ -27,12 +29,12 @@ function proxyHandlerGenerator <T, K extends keyof T> (
     },
     set: function (_: any, prop: any, value: any) {
       const currentStore = store$$.value as any
-      
+
       currentStore[prop] = value
       store$$.next(currentStore)
-      
+
       const checker = Array.isArray(currentStore) ? !isNaN(+prop) : true
-      
+
       /** Trigger change in subscription to sync values listened by hook */
       if (currentStore.hasOwnProperty(prop) && checker) attributeModified$$.next(prop)
 

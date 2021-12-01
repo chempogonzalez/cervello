@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react"
+/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
+import { useEffect, useRef } from 'react'
 
-export const useLogRenders = (component: string) => {
-  /** Nº of renders tracking ---------------*/
+export const useLogRenders = (component: string): void => {
+  /** Nº of renders tracking --------------- */
   const renders = useRef(-1)
   useEffect(() => {
     renders.current = renders.current + 1

@@ -6,7 +6,7 @@ import { useLogRenders } from '../../useLogRenders'
 export const NumberStringButton = memo(({ children }) => {
   useLogRenders('Button')
 
-  const clickHandler = () => {
+  const clickHandler = (): void => {
     counter.value += 1
     dots.value += '.'
   }

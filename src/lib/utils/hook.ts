@@ -15,7 +15,6 @@ export const createReactHook = <T>({
   store$$,
   attributeModified$$,
 }: CreateHookParams<T>): (() => T) => {
-
   const isStoreArray = Array.isArray(initialStore)
 
   return () => {
@@ -38,20 +37,20 @@ export const createReactHook = <T>({
       /** If there are attributes observed (getters) */
       if (observedAttributes.current) {
         sub = attributeModified$$.pipe(
-            isStoreArray
-              ? (v) => v
-              : filter((attributeModified) => !!(attributeModified && observedAttributes.current!.includes(attributeModified))),
-            withLatestFrom(store$$),
-            map(([_, store]) =>
-              proxifyStore<T>({
-                initialStore: store,
-                obsAttributes: observedAttributes,
-                store$$,
-                attributeModified$$,
-              }),
-            ),
-            tap(setStore)
-          ).subscribe()
+          isStoreArray
+            ? (v) => v
+            : filter((attributeModified) => !!(attributeModified && observedAttributes.current!.includes(attributeModified))),
+          withLatestFrom(store$$),
+          map(([_, store]) =>
+            proxifyStore<T>({
+              initialStore: store,
+              obsAttributes: observedAttributes,
+              store$$,
+              attributeModified$$,
+            }),
+          ),
+          tap(setStore),
+        ).subscribe()
       }
 
       return () => sub?.unsubscribe()

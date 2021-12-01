@@ -21,7 +21,11 @@ module.exports = {
   extends: ['standard-with-typescript', 'standard-jsx'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: 'tsconfig.json',
+    project: [
+      'tsconfig.json',
+      'tsconfig.eslint.json',
+      './test-app/tsconfig.json',
+    ],
   },
   rules: {
     'no-return-await': OFF,

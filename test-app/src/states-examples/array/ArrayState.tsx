@@ -1,11 +1,11 @@
-import { cervello } from 'cervello'
-import { useLogRenders } from '../../useLogRenders';
-import { ArrayButtons } from './ArrayButtons';
+import { cervello } from 'cervello'
+import { useLogRenders } from '../../useLogRenders'
+import { ArrayButtons } from './ArrayButtons'
 
-export const [cityList, useCityList] = cervello(['Seville', 'Huelva', 'Cadiz'])
+export const [cityList, useCityList] = cervello(['Seville', 'Huelva', 'Cadiz'])
 
 
-export const ArrayState = () => {
+export const ArrayState = (): JSX.Element => {
   useLogRenders('ArrayState')
 
   const cityList = useCityList()

@@ -1,12 +1,12 @@
 import { cervello } from 'cervello'
-import { NumberStringButton } from './NumberStringButton';
-import { useLogRenders } from '../../useLogRenders';
+import { NumberStringButton } from './NumberStringButton'
+import { useLogRenders } from '../../useLogRenders'
 
 export const [counter, useCount] = cervello(0)
 export const [dots, useDots] = cervello('')
 
 
-export const NumberStringState = () => {
+export const NumberStringState = (): JSX.Element => {
   useLogRenders('NumberStringState')
 
   const { value: counter } = useCount()
