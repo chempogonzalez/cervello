@@ -28,6 +28,7 @@ module.exports = {
     ],
   },
   rules: {
+    'operator-linebreak': [ERROR, 'before'],
     'no-return-await': OFF,
     'comma-dangle': [ERROR, 'always-multiline'],
     'no-multiple-empty-lines': [ERROR, { max: 8, maxBOF: 1, maxEOF: 0 }],

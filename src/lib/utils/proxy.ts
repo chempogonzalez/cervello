@@ -16,9 +16,9 @@ function proxyHandlerGenerator <T, K extends keyof T> (
       if (prop in currentStore) {
         const observedAttributes = [...(attributes?.current ?? [])]
 
-        if (attributes &&
-          !observedAttributes.includes(prop) &&
-          currentStore.hasOwnProperty(prop)
+        if (attributes
+          && !observedAttributes.includes(prop)
+          && currentStore.hasOwnProperty(prop)
         ) {
           observedAttributes.push(prop)
           attributes.current = observedAttributes
@@ -33,8 +33,9 @@ function proxyHandlerGenerator <T, K extends keyof T> (
       currentStore[prop] = value
       store$$.next(currentStore)
 
-      const checker = Array.isArray(currentStore) ? !isNaN(+prop) : true
+      const checker = Array.isArray(currentStore) ? (!isNaN(+prop) && +prop >= 0) : true
 
+      console.log('setting', { prop, value })
       /** Trigger change in subscription to sync values listened by hook */
       if (currentStore.hasOwnProperty(prop) && checker) attributeModified$$.next(prop)
 

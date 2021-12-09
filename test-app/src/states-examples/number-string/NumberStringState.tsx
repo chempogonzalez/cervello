@@ -15,7 +15,7 @@ export const NumberStringState = (): JSX.Element => {
   return (
     <>
       <h2>Number & String - state</h2>
-      <p>Counter: {counter}{dots}</p>
+      <p className='mb'>Counter: {counter}{dots}</p>
       <NumberStringButton>Increment Counter</NumberStringButton>
     </>
   )
