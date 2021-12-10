@@ -1,0 +1,99 @@
+h1{
+  color: hsl(300, 100%, 20%);
+  margin-top: 0;
+}
+
+h2{
+  color: hsl(300, 100%, 25%);
+  padding: 10px;
+  background: hsla(300, 100%, 25%, 0.11);
+  max-width: max-content;
+  border-radius: 10px;
+  margin-top: 0;
+}
+
+.App {
+  padding: 40px 80px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
+button {
+  font-size: 20px;
+  padding: 10px 25px;
+  background: purple;
+  border: none;
+  border-radius: 25px;
+  color: white;
+  max-width: max-content;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+
+  &:hover{
+    box-shadow: 0 2px 4px 0 lightgray;
+    transform: translateY(-2px) scale(1.03);
+  }
+}
+
+
+p {
+  font-size: 18px;
+  margin: 0;
+}
+
+section{
+  padding: 30px 20px 20px 20px;
+  box-shadow: 0 3px 10px 0 lightgray;
+  border-radius: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+
+ul{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list-wrapper{
+  padding: 15px 50px 15px 20px;
+  box-shadow: 0 0 0 1px purple;
+  border-radius: 15px;
+  max-width: max-content;
+  background: hsl(0deg 0% 83% / 21%);
+
+  p{
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: hsl(300, 100%, 20%);
+  }
+}
+
+.number-string-state{
+}
+
+.array-state{
+
+  .buttons{
+    display: flex;
+    column-gap: 15px;
+  }
+}
+
+
+.grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.mb {
+  margin-bottom: 15px;
+}
+

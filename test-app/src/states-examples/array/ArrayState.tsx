@@ -2,25 +2,31 @@ import { cervello } from 'cervello'
 import { useLogRenders } from '../../useLogRenders'
 import { ArrayButtons } from './ArrayButtons'
 
-export const [cityList, useCityList] = cervello(['Seville', 'Huelva', 'Cadiz'])
+
+export const [cityList, useCityList] = cervello<Array<string>>([])
 
 
-export const ArrayState = (): JSX.Element => {
+export const ArrayState = ({
+  cities = ['Seville', 'Huelva', 'Cadiz'],
+}): JSX.Element => {
   useLogRenders('ArrayState')
 
-  const cityList = useCityList()
+  /** Pushing cityList when component is mounted */
+  const cityList = useCityList(cities, 'ArrayState')
 
   return (
     <>
-      <h2>Array state</h2>
+      <h2>Array - state</h2>
       <ArrayButtons />
 
-      <p>List: </p>
-      <ul>
-        {cityList.map((city) => (
-          <li key={city}>{city}</li>
-        ))}
-      </ul>
+      <div className='list-wrapper'>
+        <p>Cities</p>
+        <ul>
+          {cityList.map((city) => (
+            <li key={city}>{city}</li>
+          ))}
+        </ul>
+      </div>
     </>
   )
 }

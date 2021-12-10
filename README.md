@@ -21,7 +21,7 @@ yarn add cervello
 
 
 ## 💻 **Usage**
-The `cervello` function let's you initialize it with a *string, number, object or array (Map is currently in develop)*. It provides you the following processed array:
+The `cervello` function let's you initialize it with a *string, number, object or array*. It provides you the following processed array:
 ```ts
 [
   /** - First Item:
@@ -83,15 +83,23 @@ const CounterButton = () => (
 ```
 
 
-#### 🔖 Local store/state
+#### 🔖 Local store/state initialization
 ```tsx
 import { cervello } from 'cervello'
 
-/** escape first item result because we only need the hook */
-const [, useCityList] = cervello(['Seville', 'Huelva'])
+/**
+ *  Escape first item result because we only need the hook
+ *  Initialize cervello to ensure reactivity with the proper type
+ */
+const [, useCityList] = cervello([])
+
 
 const Example = () => {
-  const cityList = useCityList()
+  /**
+   * Initialize value with the hook and it's sync with
+   * other components using the same hook
+   */
+  const cityList = useCityList(['Seville', 'Huelva'])
 
   return (
     <ul>
@@ -113,10 +121,10 @@ As string and number couldn't be proxified in a simpler manner they need to be u
 ```tsx
 import { cervello } from 'cervello'
 
-const [, useHelloString] = cervello('Hello')
+const [,useHelloString] = cervello('')
 
 const HelloWorld = () => {
-  const helloString = useHelloString()
+  const helloString = useHelloString('Hello')
 
   return (
     <p>{helloString.value}</p>
