@@ -4,6 +4,7 @@ import type { MutableRefObject } from 'react'
 import type { BehaviorSubject, Subject } from 'rxjs'
 
 
+
 function proxyHandlerGenerator <T, K extends keyof T> (
   attributes: MutableRefObject<Array<string> | undefined> | null,
   store$$: BehaviorSubject<T>,
@@ -12,7 +13,7 @@ function proxyHandlerGenerator <T, K extends keyof T> (
   return {
     get: function (_: any, prop: string): T[K] | null {
       const currentStore = store$$.value as any
-
+      console.log('PROP------------------------', prop)
       if (prop in currentStore) {
         const observedAttributes = [...(attributes?.current ?? [])]
 
