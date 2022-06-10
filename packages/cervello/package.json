@@ -1,0 +1,62 @@
+{
+  "name": "cervello",
+  "version": "0.9.0",
+  "description": "Simplest and trully reactive state manager for React",
+  "main": "./dist/cervello.cjs",
+  "module": "./dist/cervello.esm.js",
+  "unpkg": "./dist/cervello.umd.js",
+  "type": "module",
+  "source": "src/index.ts",
+  "types": "./types/index.d.ts",
+  "exports": {
+    "browser": "./dist/cervello.esm.js",
+    "import": "./dist/cervello.esm.js",
+    "umd": "./dist/cervello.umd.js",
+    "require": "./dist/cervello.cjs",
+    "default": "./dist/cervello.modern.js"
+  },
+  "files": [
+    "dist",
+    "types"
+  ],
+  "scripts": {
+    "build": "microbundle",
+    "dev": "microbundle watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chempogonzalez/cervello.git"
+  },
+  "sideEffects": false,
+  "keywords": [
+    "state",
+    "manager",
+    "reactive",
+    "react",
+    "immutable",
+    "observable",
+    "global",
+    "local"
+  ],
+  "author": "Chempo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chempogonzalez/cervello/issues"
+  },
+  "homepage": "https://github.com/chempogonzalez/cervello#readme",
+  "peerDependencies": {
+    "react": ">= 17.0.2",
+    "rxjs": ">= 7.4.0"
+  },
+  "dependencies": {
+    "observable-lib": "workspace:*"
+  },
+  "devDependencies": {
+    "@chempo/ec-linter": "^1.0.10",
+    "@types/react": "18.0.12",
+    "microbundle": "0.15.0",
+    "react": "17.0.2",
+    "rxjs": "7.5.5",
+    "typescript": "4.7.3"
+  }
+}

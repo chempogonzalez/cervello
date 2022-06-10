@@ -1,1 +1,0 @@
-export { cervello } from './lib'

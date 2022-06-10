@@ -5,35 +5,33 @@ const RULES = {
   ERROR: 2,
 }
 
+// eslint-disable-next-line no-unused-vars
 const { OFF, WARNING, ERROR } = RULES
 
 
-const TYPESCRIPT_RULES = {
-  '@typescript-eslint/strict-boolean-expressions': OFF,
-  '@typescript-eslint/no-extraneous-class': [ERROR, { allowStaticOnly: true }],
-  '@typescript-eslint/array-type': [ERROR, { default: 'generic', readonly: 'generic' }],
-  '@typescript-eslint/return-await': [WARNING, 'never'],
-}
+const COMMON_RULES = {}
+
+const TYPESCRIPT_RULES = {}
+
+
 
 
 /** @type {import('eslint').ESLint.Options['baseConfig']} */
 module.exports = {
-  extends: ['standard-with-typescript', 'standard-jsx'],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    project: [
-      'tsconfig.json',
-      'tsconfig.eslint.json',
-      './test-app/tsconfig.json',
-    ],
-  },
+  // Rules for .js or .jsx files
+  extends: ['./node_modules/@chempo/ec-linter/configs/without-next/.eslintrc.js'],
   rules: {
-    'operator-linebreak': [ERROR, 'before'],
-    'no-return-await': OFF,
-    'comma-dangle': [ERROR, 'always-multiline'],
-    'no-multiple-empty-lines': [ERROR, { max: 8, maxBOF: 1, maxEOF: 0 }],
-    'no-console': WARNING,
-    'no-underscore-dangle': [ERROR, { allowAfterThis: true, allowFunctionParams: false }],
-    ...TYPESCRIPT_RULES,
+    ...COMMON_RULES,
   },
+
+  // Rules for .ts or .tsx files
+  overrides: [
+    {
+      files: ['**/*.+(ts|tsx)'],
+      rules: {
+        ...COMMON_RULES,
+        ...TYPESCRIPT_RULES,
+      },
+    },
+  ],
 }
