@@ -20,7 +20,7 @@
     "types"
   ],
   "scripts": {
-    "build": "microbundle",
+    "build": "(rm -rf types & rm -rf dist) && microbundle",
     "dev": "microbundle watch"
   },
   "repository": {

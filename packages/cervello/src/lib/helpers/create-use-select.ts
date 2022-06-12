@@ -3,13 +3,10 @@ import { distinctUntilChanged } from 'rxjs'
 
 import { proxifyStore } from './proxify-store'
 
+import type { ObjectFromAttributes } from '../../types/shared'
 import type { BehaviorSubject } from 'rxjs'
 
 
-
-type ObjectFromAttributes<T, Attributes extends Array<keyof T>> = {
-  [k in Attributes[number]]: T[k]
-}
 
 function getPartialObjectFromAttributes <T> (attributes: Array<keyof T>, store: T): any {
   return attributes.reduce<any>((acc, curr) => {

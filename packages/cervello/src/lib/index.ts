@@ -1,1 +1,1 @@
-export { cervello } from './core'
+export { cervello as c } from './core'
