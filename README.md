@@ -21,116 +21,80 @@ yarn add cervello
 
 
 ## 💻 **Usage**
-The `cervello` function let's you initialize it with a *string, number, object or array*. It provides you the following processed array:
-```ts
-[
-  /** - First Item:
-   *    Reactive value to be used to set items (reactively)
-   *    producing updates in components listening values
-   *    from the hook
-   * 
-   *    (Mainly to be used outside react components)
-   */
-  reactiveValue,
+The `cervello` function allows you to create a new store in an easy way.
+1. Define the store name
+2. Set the initial value _`(the type will be inferred based on this value)`_
 
-  /** - Second Item:
-   *    React hook.
-   *    It returns the reactiveValue and makes a re-render only if
-   *    it has changed to keep it synchronized
-   */
-  useCervello
-]
-```
-> **IMPORTANT:** You can **only destructure** when you are getting an attribute/item. If you need to **set a new value it must be done without destructuring** to ensure reactivity
-
-### 🤓 Examples
-#### ☀️ Global store
 ```ts
-// - store.ts
+// - store-example.ts
 import { cervello } from 'cervello'
 
 
 /** Export it with the names you prefer to be used/imported */
-export const [store, useStore] = cervello(
-  {
-    count: 0,
-    //...more attributes
-  })
+/**
+ * The cervello function returns a store with the given name and 2 hooks
+ * to be reactive and change the store value
+ * 
+ * Object returned => { storeNameProvided, useStore, useSelect }
+ */
+export const {
+  exampleStore,                    // The store object
+  useStore: useExampleStore,  // The hook to use the store
+  useSelect: useExampleSelect // The hook to use the selectors (part of the store)
+} = cervello(
+   'exampleStore',    /* store name */
+   { count: 0 }  /* initial value */
+)
 ```
-
 
 
 Use it in your components. They don't need to know about each other. They can be in different pages or locations:
 ```tsx
-import { useStore } from './store'
+import { useExampleStore } from './store-example'
 
 const CounterLabel = () => {
-  const { count } = useStore()
+  const { count } = useExampleStore()
 
   return (<span>{ count }</span>)
-} 
+}
 ```
 
 
 ```tsx
-import { store } from './store'
+import { exampleStore } from './store-example'
 
 const CounterButton = () => (
-  <button onClick={e => store.count += 1}>
+  // This makes all the components using the store (i.e.: CounterLabel)
+  // to be reactive and re-renders with the new value
+  <button onClick={e => exampleStore.count += 1}>
     Increment
   </button>
 )
 ```
 
 
-#### 🔖 Local store/state initialization
-```tsx
-import { cervello } from 'cervello'
-
-/**
- *  Escape first item result because we only need the hook
- *  Initialize cervello to ensure reactivity with the proper type
- */
-const [, useCityList] = cervello([])
-
-
-const Example = () => {
+#### 🔖 Changing the store
+```ts
+const CounterLabel = () => {
   /**
-   * Initialize value with the hook and it's sync with
-   * other components using the same hook
-   */
-  const cityList = useCityList(['Seville', 'Huelva'])
+   * If you want to just listen for changes, then you can destructure the value but...
+   *
+   * IMPORTANT!: In order to change reactively any store attribute, you must use 
+   *             the object returned from the `useStore` hook without destructuring
+   * */
+  const exampleStore = useExampleStore()
+
+  // Destructured just to be listened if changes
+  const { count } = exampleStore
+
+  // In order to be reactive, you MUST use the object when you change a value
+  const increment = () => exampleStore.count += 1
 
   return (
-    <ul>
-      {cityList.map((city) => (
-        <li>{city}</li>
-      ))}
-    </ul>
-
-    <button onClick={e => cityList.push('Cadiz')}>
-      Add Cadiz
-    </button>
-  )
-}
-```
-
-#### 📝 String or number state
-As string and number couldn't be proxified in a simpler manner they need to be used with **".value"** attribute (similarly as "useRef with *.current*)"
-
-```tsx
-import { cervello } from 'cervello'
-
-const [,useHelloString] = cervello('')
-
-const HelloWorld = () => {
-  const helloString = useHelloString('Hello')
-
-  return (
-    <p>{helloString.value}</p>
-    <button onClick={e => helloString.value += ' World'}>
-      Add "world"
-    </button>
+    <div>
+      <span>{ count }</span>
+      <button onClick={increment}> Increment </button>
+    </div>
   )
 }
 
