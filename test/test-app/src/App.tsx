@@ -2,7 +2,7 @@ import './App.scss'
 // import { ArrayState } from './states-examples/array/ArrayState'
 // import { NumberStringState } from './states-examples/number-string/NumberStringState'
 // import { ObjectState } from './states-examples/object/ObjectState'
-import { c } from 'cervello'
+import { cervello } from '@cervello/react'
 
 import { useLogRenders } from './useLogRenders'
 
@@ -27,7 +27,7 @@ const middlewares: UseFunction<'testStore', typeof testStore> = ({ $onPartialCha
 }
 
 
-const { testStore, useSelect, useStore } = c('testStore', {
+const { testStore, useSelect, useStore } = cervello('testStore', {
   test: 'test',
   arr: [1, 2, 3],
   tii: {
