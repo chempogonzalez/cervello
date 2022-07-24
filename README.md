@@ -1,10 +1,10 @@
 # Cervello
-Simplest and trully reactive state manager for React
+Simplest and truly reactive state manager for React
 
 
 ## 🚀 **Features**
 - ⚡️ Optimized and super performant
-- ⚛️ Trully reactive on item change
+- ⚛️ Truly reactive on item change
 - ✅ Super simple and minimalistic API
 - 🐨 Listen to attributes or items lazily
 - 👌 No unnecessary re-renders
