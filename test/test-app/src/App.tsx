@@ -6,6 +6,25 @@ import { c } from 'cervello'
 
 import { useLogRenders } from './useLogRenders'
 
+import type { UseFunction } from 'cervello'
+
+
+
+let i = 0
+
+const log: UseFunction<'testStore', typeof testStore> = ({ $onChange }): void => {
+  $onChange((s) => {
+    console.log('store changed', s)
+  })
+}
+
+
+const middlewares: UseFunction<'testStore', typeof testStore> = ({ $onPartialChange }): void => {
+  $onPartialChange(['test', 'arr'], (s) => {
+    console.log('sliced store changed', s)
+    s.tii = { test2: (++i).toString() }
+  })
+}
 
 
 const { testStore, useSelect, useStore } = c('testStore', {
@@ -14,16 +33,16 @@ const { testStore, useSelect, useStore } = c('testStore', {
   tii: {
     test2: '123',
   },
-  tee: function () {
-    this.test = this.test + '__1111'
+  tee () {
+    this.test = `${this.test}__1111`
   },
-  setTee: function () {
+  setTee () {
     // this.arr = [4, 4, 4, 4, 4]
     this.arr.push(19)
 
     // this.test = 'tssstteeee'
   },
-})
+}).use(middlewares, log)
 
 // setTimeout(() => {
 //   testStore.test = '1333333'
@@ -36,16 +55,16 @@ const { testStore, useSelect, useStore } = c('testStore', {
 function App (): JSX.Element {
   useLogRenders('App')
 
-  const store = useSelect('tee', 'tii')
+  // const store = useSelect('tee', 'tii')
 
-  const s = useStore()
+  const store = useStore()
   // const xx = s.useSelect('test', 'tee')
 
   console.log('ssssssssss', store)
 
   const handleOnClick = () => {
     store.tee()
-    store.tii = { test2: '55555' }
+    // store.tii = { test2: Math.random().toString() }
   }
 
   return (
@@ -54,7 +73,7 @@ function App (): JSX.Element {
 
       <pre>{JSON.stringify(store, null, 2)}</pre>
       <hr />
-      <pre>{JSON.stringify(s, null, 2)}</pre>
+      {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
       <button onClick={handleOnClick}>Change</button>
       {/* <div className='grid'>

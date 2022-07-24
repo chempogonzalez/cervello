@@ -22,18 +22,22 @@ importers:
     specifiers:
       '@chempo/ec-linter': ^1.0.10
       '@types/react': 18.0.12
+      '@types/use-sync-external-store': ^0.0.3
       microbundle: 0.15.0
       observable-lib: workspace:*
-      react: 17.0.2
+      react: 18.1.0
       rxjs: 7.5.5
       typescript: 4.7.3
+      use-sync-external-store: ^1.1.0
     dependencies:
       observable-lib: link:../observable-lib
+      use-sync-external-store: 1.1.0_react@18.1.0
     devDependencies:
       '@chempo/ec-linter': 1.0.10_typescript@4.7.3
       '@types/react': 18.0.12
+      '@types/use-sync-external-store': 0.0.3
       microbundle: 0.15.0
-      react: 17.0.2
+      react: 18.1.0
       rxjs: 7.5.5
       typescript: 4.7.3
 
@@ -1659,6 +1663,10 @@ packages:
 
   /@types/scheduler/0.16.2:
     resolution: {integrity: sha512-hppQEBDmlwhFAXKJX2KnWLYu5yMfi91yazPb2l+lbJiwW+wdo1gNeRA+3RgNSO39WYX2euey41KEwnqesU2Jew==}
+    dev: true
+
+  /@types/use-sync-external-store/0.0.3:
+    resolution: {integrity: sha512-EwmlvuaxPNej9+T4v5AuBPJa2x2UOJVdjCtDHgcDqitUeOtjnJKJ+apYjVcAoBEMjKW1VVFGZLUb5+qqa09XFA==}
     dev: true
 
   /@typescript-eslint/eslint-plugin/4.33.0_b2rfmdvuwe4rokpupduzboofj4:
@@ -4875,6 +4883,12 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
 
+  /react/18.1.0:
+    resolution: {integrity: sha512-4oL8ivCz5ZEPyclFQXaNksK3adutVS8l2xzZU0cqEFrE9Sb7fC0EFK5uEk74wIreL1DERyjvsU915j1pcT2uEQ==}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      loose-envify: 1.4.0
+
   /readdirp/3.6.0:
     resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
     engines: {node: '>=8.10.0'}
@@ -5489,6 +5503,14 @@ packages:
     dependencies:
       punycode: 2.1.1
     dev: true
+
+  /use-sync-external-store/1.1.0_react@18.1.0:
+    resolution: {integrity: sha512-SEnieB2FPKEVne66NpXPd1Np4R1lTNKfjuy3XdIoPQKYBAFdzbzSZlSn1KJZUiihQLQC5Znot4SBz1EOTBwQAQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 18.1.0
+    dev: false
 
   /util-deprecate/1.0.2:
     resolution: {integrity: sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=}

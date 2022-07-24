@@ -20,10 +20,11 @@
     "url": "git+https://github.com/chempogonzalez/cervello.git"
   },
   "author": "Chempo",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/chempogonzalez/cervello/issues"
   },
+  "sideEffects": false,
   "homepage": "https://github.com/chempogonzalez/cervello#readme",
   "devDependencies": {
     "@chempo/ec-linter": "^1.0.10",

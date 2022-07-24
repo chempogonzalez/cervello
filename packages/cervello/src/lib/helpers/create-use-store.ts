@@ -12,6 +12,7 @@ export function createUseStore <T> (store$$: BehaviorSubject<T>): () => T {
     const [store, setStore] = useState<T>(proxifyStore(store$$, store$$.value))
     const isFirstTime = useRef(true)
 
+    // TODO: Use new useSyncExternalStore API hook
     useEffect(() => {
       const subscription = store$$.pipe(observeOn(queueScheduler)).subscribe((n) => {
         if (isFirstTime.current) {

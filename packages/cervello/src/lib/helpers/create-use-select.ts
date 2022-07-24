@@ -8,7 +8,7 @@ import type { BehaviorSubject } from 'rxjs'
 
 
 
-function getPartialObjectFromAttributes <T> (attributes: Array<keyof T>, store: T): any {
+export function getPartialObjectFromAttributes <T> (attributes: Array<keyof T>, store: T): any {
   return attributes.reduce<any>((acc, curr) => {
     acc[curr] = store[curr]
     return acc
