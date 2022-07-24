@@ -6,7 +6,7 @@ import { cervello } from '@cervello/react'
 
 import { useLogRenders } from './useLogRenders'
 
-import type { UseFunction } from 'cervello'
+import type { UseFunction } from '@cervello/react'
 
 
 
