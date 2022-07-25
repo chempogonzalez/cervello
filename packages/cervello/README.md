@@ -1,7 +1,12 @@
 # Cervello
+<img src="https://img.shields.io/npm/v/@cervello/react?color=red&style=flat-square">
+
 > (Beta version) - Working on it to be have SSR integration (hydration) and better documentation
 
-#### `746 Bytes of bundle size for now!! `
+<img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square">
+
+
+#### `746 Bytes of bundle size for now (.br compressed)!! `
 Simplest and truly reactive state manager for React
 
 
@@ -30,7 +35,7 @@ The `cervello` function allows you to create a new store in an easy way.
 
 ```ts
 // - store-example.ts
-import { cervello } from 'cervello'
+import { cervello } from '@cervello/react'
 
 
 /** Export it with the names you prefer to be used/imported */
@@ -41,12 +46,12 @@ import { cervello } from 'cervello'
  * Object returned => { storeNameProvided, useStore, useSelect }
  */
 export const {
-  exampleStore,                    // The store object
+  exampleStore,               // The store object
   useStore: useExampleStore,  // The hook to use the store
   useSelect: useExampleSelect // The hook to use the selectors (part of the store)
 } = cervello(
    'exampleStore',    /* store name */
-   { count: 0 }  /* initial value */
+   { count: 0 }       /* initial value */
 )
 ```
 
@@ -76,14 +81,17 @@ const CounterButton = () => (
 ```
 
 
-#### 🔖 Changing the store
+### 🔖 Changing the store
 ```ts
 const CounterLabel = () => {
   /**
-   * If you want to just listen for changes, then you can destructure the value but...
+   * If you want to just listen for changes, then you
+   * can destructure the value but...
    *
-   * IMPORTANT!: In order to change reactively any store attribute, you must use 
-   *             the object returned from the `useStore` hook without destructuring
+   * IMPORTANT!:
+   *      In order to change reactively any store attribute, you 
+   *      must use the object returned from the `useStore` hook
+   *      without destructuring
    * */
   const exampleStore = useExampleStore()
 
@@ -103,8 +111,8 @@ const CounterLabel = () => {
 
 ```
 
-## USE FUNCTION
-The use function allows you to implement side effects due to a change in a the store
+### ⤵️ The `Use` function
+The use function allows you to implement side effects due to a change in happened in the store
 ```ts
 import type { UseFunction } from '@cervello/react'
 
@@ -121,7 +129,7 @@ const { testStore } =
   
 ```
 
-#### Use function callback object
+#### 🗳️ Use function callback object
 ```ts
 import type { UseFunction } from '@cervello/react'
 
