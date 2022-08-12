@@ -1,7 +1,7 @@
 {
   "name": "@cervello/react",
-  "version": "0.9.4",
-  "description": "Simplest and truly reactive state manager for React",
+  "version": "0.9.5",
+  "description": "🤯 Simplest and truly reactive state manager for React",
   "main": "./dist/cervello.cjs",
   "module": "./dist/cervello.esm.js",
   "unpkg": "./dist/cervello.umd.js",

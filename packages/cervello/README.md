@@ -7,7 +7,7 @@
 
 
 
-🔅 Simplest and truly reactive state manager for React
+🤯 Simplest and truly reactive state manager for React
 
 
 ## 🚀 **Features**
