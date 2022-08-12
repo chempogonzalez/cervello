@@ -1,6 +1,6 @@
 {
   "name": "@cervello/react",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Simplest and truly reactive state manager for React",
   "main": "./dist/cervello.cjs",
   "module": "./dist/cervello.esm.js",
@@ -28,6 +28,7 @@
     "types"
   ],
   "scripts": {
+    "prepublish": "npm run build",
     "build": "(rm -rf types & rm -rf dist) && microbundle --alias @observable-lib=../observable-lib/src/index.ts",
     "dev": "microbundle watch"
   },
@@ -38,9 +39,9 @@
   "sideEffects": false,
   "keywords": [
     "state",
+    "react",
     "manager",
     "reactive",
-    "react",
     "immutable",
     "observable",
     "global",
