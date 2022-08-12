@@ -1,9 +1,16 @@
 # Cervello
-Simplest and truly reactive state manager for React
+<a href="https://bundlephobia.com/package/@cervello/react@latest"><img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square"></a>
+<a href="https://www.npmjs.com/package/@cervello/react"><img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
+
+> (Beta version) - Working on SSR,persist options and documentation page
+
+
+
+
+🤯 Simplest and truly reactive state manager for React
 
 
 ## 🚀 **Features**
-- ⚡️ Optimized and super performant
 - ⚛️ Truly reactive on item change
 - ✅ Super simple and minimalistic API
 - 🐨 Listen to attributes or items lazily
@@ -11,91 +18,138 @@ Simplest and truly reactive state manager for React
 - 🔑 Typescript support
 
 ## 📦 **Install**
-```zsh
-# NPM install as a dependency
-npm install cervello
+```bash
+# NPM
+npm install @cervello/react
 
-# YARN install as a dependency
-yarn add cervello
+# YARN
+yarn add @cervello/react
+
+# PNPM
+pnpm add @cervello/react
 ```
 
 
 ## 💻 **Usage**
 The `cervello` function allows you to create a new store in an easy way.
-1. Define the store name
-2. Set the initial value _`(the type will be inferred based on this value)`_
+Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
 
 ```ts
 // - store-example.ts
-import { cervello } from 'cervello'
+import { cervello } from '@cervello/react'
 
 
 /** Export it with the names you prefer to be used/imported */
 /**
- * The cervello function returns a store with the given name and 2 hooks
- * to be reactive and change the store value
+ * The cervello function returns a reactive store and 2 hooks
+ * to be reactive and change the store value inside react components
+ *
  * 
- * Object returned => { storeNameProvided, useStore, useSelector }
+ * Object returned => { store, useStore, useSelector }
  */
 export const {
-  exampleStore,                    // The store object
-  useStore: useExampleStore,  // The hook to use the store
+  store:       exampleStore,    // The store object
+  useStore:    useExampleStore, // The hook to use the store
   useSelector: useExampleSelect // The hook to use the selectors (part of the store)
-} = cervello(
-   'exampleStore',    /* store name */
-   { count: 0 }  /* initial value */
-)
+} = cervello({ count: 0 })
 ```
 
 
-Use it in your components. They don't need to know about each other. They can be in different pages or locations:
-```tsx
-import { useExampleStore } from './store-example'
-
-const CounterLabel = () => {
-  const { count } = useExampleStore()
-
-  return (<span>{ count }</span>)
-}
-```
-
+### 🟢 `store`
+The store object that you can use `inside or outside react components` to modify the store. It will automatically notify all the components listening for changes
 
 ```tsx
-import { exampleStore } from './store-example'
+import { store } from './store-example'
+
+/**
+ * It can be used outside the react components
+ * It will notify all the components listening for changes 
+ */
+const increment = () => { store.count++}
 
 const CounterButton = () => (
-  // This makes all the components using the store (i.e.: CounterLabel)
-  // to be reactive and re-renders with the new value
-  <button onClick={e => exampleStore.count += 1}>
+  /**
+   * This makes all the components using the store (i.e.: CounterLabel)
+   * to be reactive and re-renders with the new value
+   */
+  <button onClick={increment}>
     Increment
   </button>
 )
 ```
 
+### 🟢 `useStore`
 
-#### 🔖 Changing the store
-```ts
+React hook that allows you to have a reactive store which re-renders when a new value was set
+```tsx
+import { useStore } from './store-example'
+
+const CounterLabel = () => {
+  const { count } = useStore()
+
+  return (<span>{ count }</span>)
+}
+```
+
+### 🟢 `useSelector`
+
+React hook that allows you to have a reactive store which re-renders when a new value was set on properties you specified
+```tsx
+import { useSelector } from './store-example'
+
 const CounterLabel = () => {
   /**
-   * If you want to just listen for changes, then you can destructure the value but...
-   *
-   * IMPORTANT!: In order to change reactively any store attribute, you must use 
-   *             the object returned from the `useStore` hook without destructuring
-   * */
-  const exampleStore = useExampleStore()
+   * This will re-render just only when the property `count` changes
+   */
+  const { count } = useSelector(['count'])
 
-  // Destructured just to be listened if changes
-  const { count } = exampleStore
+  return (<span>{ count }</span>)
+}
+```
+----
+### 🟣 The `Use` function
+The use function allows you to implement side effects due to a store change
+#### 🔽 Example
+```ts
+import type { UseFunction } from '@cervello/react'
 
-  // In order to be reactive, you MUST use the object when you change a value
-  const increment = () => exampleStore.count += 1
-
-  return (
-    <div>
-      <span>{ count }</span>
-      <button onClick={increment}> Increment </button>
-    </div>
-  )
+const logger: UseFunction<typeof store> = ({ $onChange }): void => {
+  $onChange((store) => {
+    console.log('[Store-changed] to ==>', store)
+  })
 }
 
+
+const { store } = cervello({ name: 'chempo', surname: 'gonzalez' })
+    .use(logger, /* other use functions */)
+  
 ```
+
+#### 🗳️ Use function callback object
+```ts
+import type { UseFunction } from '@cervello/react'
+
+const logger: UseFunction<typeof store> = ({ $onChange, $onPartialChange }): void => {
+  // Listen to all the changes happened in the store
+  $onChange((store) => {
+    console.log('Store changed to :>>', store)
+  });
+
+  // Listen to the changes happened in the store's attributes provided
+  $onPartialChange(['name'], (store) => {
+    console.log('Name has changed to:', store.name)
+  })
+}
+```
+------
+<br>
+
+
+## 🤓 Happy Code
+
+> Created with Typescript! ⚡ and latin music 🎺🎵
+
+### This README.md file has been written keeping in mind
+
+- [GitHub Markdown](https://guides.github.com/features/mastering-markdown/)
+- [Emoji Cheat Sheet](https://www.webfx.com/tools/emoji-cheat-sheet/)
