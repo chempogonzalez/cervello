@@ -28,7 +28,7 @@
     "types"
   ],
   "scripts": {
-    "build": "(rm -rf types & rm -rf dist) && microbundle",
+    "build": "(rm -rf types & rm -rf dist) && microbundle --alias @observable-lib=../observable-lib/src/index.ts",
     "dev": "microbundle watch"
   },
   "repository": {

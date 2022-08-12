@@ -35,12 +35,12 @@ import { cervello } from 'cervello'
  * The cervello function returns a store with the given name and 2 hooks
  * to be reactive and change the store value
  * 
- * Object returned => { storeNameProvided, useStore, useSelect }
+ * Object returned => { storeNameProvided, useStore, useSelector }
  */
 export const {
   exampleStore,                    // The store object
   useStore: useExampleStore,  // The hook to use the store
-  useSelect: useExampleSelect // The hook to use the selectors (part of the store)
+  useSelector: useExampleSelect // The hook to use the selectors (part of the store)
 } = cervello(
    'exampleStore',    /* store name */
    { count: 0 }  /* initial value */

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { observeOn, queueScheduler } from 'rxjs'
 
+import { useSyncExternalStore } from 'use-sync-external-store/shim'
+
+import { subscribeForReactHook } from '../utils/subscribe-for-react'
 import { proxifyStore } from './proxify-store'
 
 import type { BehaviorSubject } from 'rxjs'
@@ -8,24 +9,17 @@ import type { BehaviorSubject } from 'rxjs'
 
 
 export function createUseStore <T> (store$$: BehaviorSubject<T>): () => T {
-  return () => {
-    const [store, setStore] = useState<T>(proxifyStore(store$$, store$$.value))
-    const isFirstTime = useRef(true)
-
-    // TODO: Use new useSyncExternalStore API hook
-    useEffect(() => {
-      const subscription = store$$.pipe(observeOn(queueScheduler)).subscribe((n) => {
-        if (isFirstTime.current) {
-          isFirstTime.current = false
-        } else {
-          setStore(proxifyStore(store$$, n))
-        }
-      })
-
-      return () => subscription.unsubscribe()
-    }, [])
+  const subscribe = subscribeForReactHook(store$$)
+  const getValue = store$$.getValue.bind(store$$)
 
 
-    return store
+  // USE STORE HOOK -------------------------------------------------
+  const useStore = (): T => {
+    const store = useSyncExternalStore(subscribe, getValue, getValue)
+
+    return proxifyStore(store$$, store)
   }
+
+
+  return useStore
 }

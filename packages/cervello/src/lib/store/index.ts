@@ -1,64 +1,94 @@
 import { BehaviorSubject, distinctUntilChanged, NEVER, of, pairwise, switchMap } from 'rxjs'
 
-import { createUseSelect, createUseStore, proxifyStore } from '../helpers'
+import { createUseSelector, createUseStore, proxifyStore } from '../helpers'
 
-import type { ObjectFromAttributes } from '../../types/shared'
+import type { WithoutType } from '../../types/shared'
+import type { UseSelector } from '../helpers'
 
 
 
 // const STORE_SYMBOL = '__cervello-store__'
 
 
-
-
-type CervelloStoreUseParam<StoreName extends string, StoreType> = {
-  [k in StoreName]: StoreType
-} & {
+interface CervelloStoreUseParam<StoreType> {
+  store: StoreType
   $onChange: (cb: (store: StoreType) => void) => void
   $onPartialChange: <
-    Attributes extends Array<keyof StoreType>
+    Attributes extends Array< keyof WithoutType<StoreType, Function>>
   > (selectors: Attributes, cb: (store: StoreType) => void) => void
 }
 
+/**
+ * Use function which allows you to listen for changes in the store.
+ */
+export type CervelloUseFunction<StoreType> = (param: CervelloStoreUseParam<StoreType>) => void
 
-export type CervelloUseFunction<StoreName extends string, StoreType> = (param: CervelloStoreUseParam<StoreName, StoreType>) => void
 
-
-type CervelloStore<StoreName extends string, StoreType> = {
-  [k in StoreName]: StoreType
-} & {
+interface CervelloStore<StoreType> {
+  /** Reactive store */
+  store: StoreType
+  /** Hook to react to all changes done to 'store' */
   useStore: () => StoreType
-  useSelect: <Attributes extends Array<keyof StoreType>>(...selectors: Attributes) => ObjectFromAttributes<StoreType, Attributes>
-  use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreName, StoreType>) => void>) => CervelloStore<StoreName, StoreType>
+  /** Hook to react to changes done to 'store' in all the attributes provided */
+  useSelector: UseSelector<StoreType>
+  /** Functions to be attached to changes in a general way (tracking, loggers, ... etc) */
+  use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType>
+}
+
+/**
+ * @note Currently not working
+ */
+export interface CervelloOptions {
+  persist?:
+  | boolean
+  // | {
+  //   getItem: (key: string) => any
+  // }
 }
 
 
+/**
+ * Creates a store that is reactive and can be used inside and outside of React components.
+ * @param initialValue Object with the default values for the store
+ *
+ * @returns - { store, useStore, useSelector }
+ */
+export function cervello <T extends Record<any, unknown>> (initialValue: T, options?: CervelloOptions): CervelloStore<T>
 
 
-export function cervello <
-  StoreName extends string,
-  T
-> (storeName: StoreName, initialValue: T): CervelloStore<StoreName, T> {
-  // Unique symbol to be used to keep a reference of the BehaviourSubject
-  // const storeSymbol = Symbol(STORE_SYMBOL)
+/**
+ * Creates a store that is reactive and can be used inside and outside of React components.
+ * @param initialValue Function which returns the default values for the store
+ *
+ * @returns - { store, useStore, useSelector }
+ */
+export function cervello <T> (initialValue: () => T, options?: CervelloOptions): CervelloStore<T>
 
 
-  const store$$ = new BehaviorSubject<T>(initialValue)
 
-  const proxiedStore = proxifyStore(store$$, { ...initialValue })
+
+
+
+
+/** @internal */
+export function cervello <T> (initialValue: T | (() => T), options?: CervelloOptions): CervelloStore<T> {
+  const defaultValue = (typeof initialValue === 'function' ? (initialValue as any)() : initialValue) as T
+  const store$$ = new BehaviorSubject<T>(defaultValue)
+
+  const proxiedStore = proxifyStore<T>(store$$, { ...defaultValue })
 
   const cervelloStore = {
-    [storeName]: proxiedStore,
+    store: proxiedStore,
 
     // TO BE SEPARATED IN cervello/react package ---------------------
     useStore: createUseStore<T>(store$$),
-    useSelect: createUseSelect<T>(store$$),
+    useSelector: createUseSelector<T>(store$$),
     // ---------------------------------------------------------------
 
     use (...functionList: any) {
       functionList.forEach((func: any) => {
         func({
-          [storeName]: proxiedStore,
+          store: proxiedStore,
           $onChange (cb: any) {
             store$$.pipe(
               pairwise(),
@@ -72,12 +102,12 @@ export function cervello <
               distinctUntilChanged((prev, curr) => {
                 let isEqual = true
                 attrs.forEach((selector) => {
-                  if (typeof curr[selector] === 'object' && isEqual) {
+                  if (isEqual && typeof curr[selector] === 'object') {
                     if (JSON.stringify(prev[selector]) !== JSON.stringify(curr[selector])) {
                       isEqual = false
                     }
                   } else {
-                    if (prev[selector] !== curr[selector] && isEqual) {
+                    if (isEqual && prev[selector] !== curr[selector]) {
                       isEqual = false
                     }
                   }
@@ -94,5 +124,5 @@ export function cervello <
 
 
 
-  return cervelloStore as CervelloStore<StoreName, T>
+  return cervelloStore as CervelloStore<T>
 }

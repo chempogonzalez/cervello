@@ -6,65 +6,62 @@ import { cervello } from '@cervello/react'
 
 import { useLogRenders } from './useLogRenders'
 
-import type { UseFunction } from '@cervello/react'
+// import type { UseFunction } from '@cervello/react'
 
 
 
-let i = 0
-
-const log: UseFunction<'testStore', typeof testStore> = ({ $onChange }): void => {
-  $onChange((s) => {
-    console.log('store changed', s)
-  })
-}
+// const log: UseFunction<typeof store> = ({ $onChange }): void => {
+//   $onChange((store) => {
+//     console.log('[log] - store changed', store)
+//   })
+// }
 
 
-const middlewares: UseFunction<'testStore', typeof testStore> = ({ $onPartialChange }): void => {
-  $onPartialChange(['test', 'arr'], (s) => {
-    console.log('sliced store changed', s)
-    s.tii = { test2: (++i).toString() }
-  })
-}
+// const middlewares: UseFunction<typeof store> = ({ $onPartialChange }): void => {
+//   $onPartialChange(['surname'], (s) => {
+//     console.log('[middleware-partial] - sliced store changed', s)
+//   })
+// }
 
 
-const { testStore, useSelect, useStore } = cervello('testStore', {
-  test: 'test',
-  arr: [1, 2, 3],
-  tii: {
-    test2: '123',
+const { store, useSelector, useStore } = cervello({
+  name: 'Chempo',
+  surname: 'Gonzalez',
+  links: {
+    github: '@chempogonzalez',
+    twitter: '@_chempo',
+    nested: {
+      test: 1,
+    },
   },
-  tee () {
-    this.test = `${this.test}__1111`
-  },
-  setTee () {
-    // this.arr = [4, 4, 4, 4, 4]
-    this.arr.push(19)
+  addLink (key: 'test', value: number): void {
+    type LinkKeys = keyof typeof this.links['nested']
 
-    // this.test = 'tssstteeee'
+    this.links.nested[key as LinkKeys] = value
   },
-}).use(middlewares, log)
+  addSecondSurname (surname: string): void {
+    this.surname = `${this.surname} ${surname}`
+  },
+})
 
-// setTimeout(() => {
-//   testStore.test = '1333333'
-//   console.log('-*********', testStore.tee());
-//   // testStore.setTee()
-//   testStore.arr = [12,4]
-// }, 3000);
+
+// .use(middlewares, log)
+
 
 
 function App (): JSX.Element {
   useLogRenders('App')
 
-  // const store = useSelect('tee', 'tii')
+  // const store = useStore()
+  const x = useSelector(['links', 'name'])
+  console.log({ x })
 
-  const store = useStore()
-  // const xx = s.useSelect('test', 'tee')
+  // const store = useStore()
 
-  console.log('ssssssssss', store)
 
   const handleOnClick = () => {
-    store.tee()
-    // store.tii = { test2: Math.random().toString() }
+    // store.addLink('test', Math.random())
+    store.links = { tet: 1 } as any
   }
 
   return (

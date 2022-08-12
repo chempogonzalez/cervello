@@ -28,6 +28,9 @@ module.exports = {
   overrides: [
     {
       files: ['**/*.+(ts|tsx)'],
+      parserOptions: {
+        project: './tsconfig.base.json',
+      },
       rules: {
         ...COMMON_RULES,
         ...TYPESCRIPT_RULES,
