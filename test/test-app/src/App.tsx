@@ -6,22 +6,22 @@ import { cervello } from '@cervello/react'
 
 import { useLogRenders } from './useLogRenders'
 
-// import type { UseFunction } from '@cervello/react'
+import type { UseFunction } from '@cervello/react'
 
 
 
-// const log: UseFunction<typeof store> = ({ $onChange }): void => {
-//   $onChange((store) => {
-//     console.log('[log] - store changed', store)
-//   })
-// }
+const log: UseFunction<typeof store> = ({ onChange }): void => {
+  onChange((store) => {
+    console.log('[log] - store changed', store)
+  })
+}
 
 
-// const middlewares: UseFunction<typeof store> = ({ $onPartialChange }): void => {
-//   $onPartialChange(['surname'], (s) => {
-//     console.log('[middleware-partial] - sliced store changed', s)
-//   })
-// }
+const middlewares: UseFunction<typeof store> = ({ onPartialChange }): void => {
+  onPartialChange(['surname'], (s) => {
+    console.log('[middleware-partial] - sliced store changed', s)
+  })
+}
 
 
 const { store, useSelector, useStore } = cervello({
@@ -45,7 +45,7 @@ const { store, useSelector, useStore } = cervello({
 })
 
 
-// .use(middlewares, log)
+  .use(middlewares, log)
 
 
 

@@ -41,7 +41,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
       },
       set: function (target: T, prop: string | symbol, value: any) {
         // Write a merge deep nested objects function (as 'deepmerge lib')
-        console.log('set', { target, prop, value })
+        // console.log('set', { target, prop, value })
         const currentStore = store$$.getValue() as any
 
         const clonedStore = Object.assign({}, currentStore)

@@ -11,9 +11,8 @@ import type { UseSelector } from '../helpers'
 
 
 interface CervelloStoreUseParam<StoreType> {
-  store: StoreType
-  $onChange: (cb: (store: StoreType) => void) => void
-  $onPartialChange: <
+  onChange: (cb: (store: StoreType) => void) => void
+  onPartialChange: <
     Attributes extends Array< keyof WithoutType<StoreType, Function>>
   > (selectors: Attributes, cb: (store: StoreType) => void) => void
 }
@@ -88,14 +87,13 @@ export function cervello <T> (initialValue: T | (() => T), options?: CervelloOpt
     use (...functionList: any) {
       functionList.forEach((func: any) => {
         func({
-          store: proxiedStore,
-          $onChange (cb: any) {
+          onChange (cb: any) {
             store$$.pipe(
               pairwise(),
               switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
             ).subscribe((_) => cb(proxiedStore))
           },
-          $onPartialChange (attrs: Array<keyof T>, cb: any) {
+          onPartialChange (attrs: Array<keyof T>, cb: any) {
             store$$.pipe(
               pairwise(),
               switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
