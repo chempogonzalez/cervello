@@ -39,18 +39,15 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
 import { cervello } from '@cervello/react'
 
 
-/** Export it with the names you prefer to be used/imported */
 /**
  * The cervello function returns a reactive store and 2 hooks
- * to be reactive and change the store value inside react components
+ * to be ready to changes inside react components
  *
- * 
- * Object returned => { store, useStore, useSelector }
  */
 export const {
-  store:       exampleStore,    // The store object
-  useStore:    useExampleStore, // The hook to use the store
-  useSelector: useExampleSelect // The hook to use the selectors (part of the store)
+  store,       // The store object
+  useStore,    // The hook to use the store
+  useSelector, // The hook to use the selectors (part of the store)
 } = cervello({ count: 0 })
 ```
 
@@ -94,6 +91,9 @@ const CounterLabel = () => {
 ### 🟢 `useSelector`
 
 React hook that allows you to have a reactive store which re-renders when a new value was set on properties you specified
+- _Parameters_:
+  - `selectors`: an array of store properties to be watched
+  - `isEqualFunction`: a custom function to compare the new value with the old one
 ```tsx
 import { useSelector } from './store-example'
 
@@ -113,8 +113,8 @@ The use function allows you to implement side effects due to a store change
 ```ts
 import type { UseFunction } from '@cervello/react'
 
-const logger: UseFunction<typeof store> = ({ $onChange }): void => {
-  $onChange((store) => {
+const logger: UseFunction<typeof store> = ({ onChange }): void => {
+  onChange((store) => {
     console.log('[Store-changed] to ==>', store)
   })
 }
@@ -125,18 +125,18 @@ const { store } = cervello({ name: 'chempo', surname: 'gonzalez' })
   
 ```
 
-#### 🗳️ Use function callback object
+#### 🗳️ Use function input parameters
 ```ts
 import type { UseFunction } from '@cervello/react'
 
-const logger: UseFunction<typeof store> = ({ $onChange, $onPartialChange }): void => {
+const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void => {
   // Listen to all the changes happened in the store
-  $onChange((store) => {
+  onChange((store) => {
     console.log('Store changed to :>>', store)
   });
 
   // Listen to the changes happened in the store's attributes provided
-  $onPartialChange(['name'], (store) => {
+  onPartialChange(['name'], (store) => {
     console.log('Name has changed to:', store.name)
   })
 }
