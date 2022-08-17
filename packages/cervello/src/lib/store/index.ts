@@ -1,4 +1,4 @@
-import { BehaviorSubject, distinctUntilChanged, NEVER, of, pairwise, switchMap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged } from 'rxjs'
 
 import { createUseSelector, createUseStore, proxifyStore } from '../helpers'
 
@@ -88,26 +88,25 @@ export function cervello <T> (initialValue: T | (() => T), options?: CervelloOpt
       functionList.forEach((func: any) => {
         func({
           onChange (cb: any) {
-            store$$.pipe(
-              pairwise(),
-              switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
-            ).subscribe((_) => cb(proxiedStore))
+            // store$$.pipe(
+            //   // pairwise(),
+            //   // switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
+            // ).subscribe((_) => cb(proxiedStore))
+            store$$.subscribe((_) => cb(proxiedStore))
           },
           onPartialChange (attrs: Array<keyof T>, cb: any) {
             store$$.pipe(
-              pairwise(),
-              switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
+              // pairwise(),
+              // switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
               distinctUntilChanged((prev, curr) => {
                 let isEqual = true
                 attrs.forEach((selector) => {
-                  if (isEqual && typeof curr[selector] === 'object') {
-                    if (JSON.stringify(prev[selector]) !== JSON.stringify(curr[selector])) {
-                      isEqual = false
-                    }
-                  } else {
-                    if (isEqual && prev[selector] !== curr[selector]) {
-                      isEqual = false
-                    }
+                  const currentPropertyValue = curr[selector]
+                  const prevPropertyValue = prev[selector]
+                  if (isEqual) {
+                    isEqual = typeof currentPropertyValue === 'object'
+                      ? JSON.stringify(prevPropertyValue) === JSON.stringify(currentPropertyValue)
+                      : prevPropertyValue === currentPropertyValue
                   }
                 })
                 return isEqual
