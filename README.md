@@ -62,7 +62,7 @@ import { store } from './store-example'
  * It can be used outside the react components
  * It will notify all the components listening for changes 
  */
-const increment = () => { store.count++}
+const increment = () => { store.count++ }
 
 const CounterButton = () => (
   /**
@@ -120,12 +120,14 @@ const logger: UseFunction<typeof store> = ({ onChange }): void => {
 }
 
 
-const { store } = cervello({ name: 'chempo', surname: 'gonzalez' })
-    .use(logger, /* other use functions */)
+const { store } = cervello({
+  name: 'chempo',
+  surname: 'gonzalez'
+}).use(logger, /* ... */)
   
 ```
 
-#### 🗳️ Use function input parameters
+#### 🗳️ Use function - `utility functions`
 ```ts
 import type { UseFunction } from '@cervello/react'
 
@@ -143,6 +145,40 @@ const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void 
 ```
 ------
 <br>
+
+## 💡 Features out-of-the-box
+###  **`💠 Nested objects reactivity`**
+You can change a nested property of an object and it will be notified automatically
+
+```jsx
+import { store } from './other-example'
+
+const AddressChanger = () => {
+  return (
+    <button onClick={() => { store.address.street = 'New street' }}>
+      Change street to Seville
+    </button>
+  )
+}
+```
+
+```tsx
+import { useSelector } from './other-example'
+
+// Component listening for address object changes
+const Address = () => {
+  const { address } = useSelector(['address'])
+  const { street, city } = address
+  return (
+    <div>
+      <span>{ street }</span>
+      <span>{ city }</span>
+    </div>
+  )
+}
+```
+
+
 
 
 ## 🤓 Happy Code
