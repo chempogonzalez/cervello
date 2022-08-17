@@ -5,7 +5,7 @@ importers:
   .:
     specifiers:
       '@chempo/ec-linter': ^1.0.10
-      '@types/react': 18.0.12
+      '@types/react': 18.0.17
       microbundle: 0.15.0
       next: ^12.2.4
       react: 17.0.2
@@ -13,7 +13,7 @@ importers:
       typescript: 4.7.4
     devDependencies:
       '@chempo/ec-linter': 1.0.10_qrsorpln2fp6slda3ktfmqozhe
-      '@types/react': 18.0.12
+      '@types/react': 18.0.17
       microbundle: 0.15.0
       next: 12.2.4_6l5554ty5ajsajah6yazvrjhoe
       react: 17.0.2
@@ -3023,14 +3023,6 @@ packages:
     dependencies:
       '@types/history': 4.7.11
       '@types/react': 18.0.17
-
-  /@types/react/18.0.12:
-    resolution: {integrity: sha512-duF1OTASSBQtcigUvhuiTB1Ya3OvSy+xORCiEf20H0P0lzx+/KeVsA99U5UjLXSbyo1DRJDlLKqTeM1ngosqtg==}
-    dependencies:
-      '@types/prop-types': 15.7.5
-      '@types/scheduler': 0.16.2
-      csstype: 3.1.0
-    dev: true
 
   /@types/react/18.0.15:
     resolution: {integrity: sha512-iz3BtLuIYH1uWdsv6wXYdhozhqj20oD4/Hk2DNXIn1kFsmp9x8d9QB6FnPhfkbhd2PgEONt9Q1x/ebkwjfFLow==}

@@ -1,9 +1,15 @@
+
 import type { BehaviorSubject } from 'rxjs'
 
 
 
-const NESTED_ATTRIBUTES_SYMBOL = '___nested-attributes___'
+const NESTED_ATTRIBUTES_SYMBOL = '$$nested-attributes'
 const nestedAttrs = Symbol(NESTED_ATTRIBUTES_SYMBOL)
+
+function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, value: unknown): any {
+  keyPath.forEach((key) => { obj = obj[key] })
+  obj[prop] = value
+}
 
 export function proxifyStore <T extends Record<string | symbol, any>> (store$$: BehaviorSubject<T>, storeObject: T): T {
   if (typeof storeObject !== 'object') throw new Error('Store must be an object')
@@ -13,25 +19,33 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
     {
       get: function (target: T, prop: string | symbol): any {
         const currentStore = target as any
-        // console.log('get', { target, prop, in: prop in currentStore })
 
-        // Problem with nested proxies because of currentStore is the root object
         if (prop in currentStore) {
           if (typeof currentStore[prop] === 'function') {
             return currentStore[prop].bind(proxifyStore(store$$, currentStore))
           }
 
-          // console.log('------', prop, typeof currentStore[prop] === 'object', !Array.isArray(currentStore[prop]))
-          // TODO:  add pseudo identifier in order to return
-          // TODO: the same object with a identifier of the level and the name of the property
-          if (typeof currentStore[prop] === 'object' && !Array.isArray(currentStore[prop]) && typeof prop !== 'symbol') {
-            // console.log('returning proxified object', prop)
+          // Return proxied object for nested reactivity
+          if (currentStore[prop]
+            && typeof currentStore[prop] === 'object'
+            && !Array.isArray(currentStore[prop])
+            && typeof prop !== 'symbol') {
+            const currentNestedAttrs = target?.[nestedAttrs]
+            const nestedAttrsPrefix = currentNestedAttrs ? `${currentNestedAttrs as string}.` : ''
             return proxifyStore(
               store$$,
-              {
+              Object.defineProperty({
                 ...currentStore[prop],
-                [nestedAttrs]: `${(target?.[nestedAttrs]) ?? ''}${prop}`,
-              })
+              },
+              nestedAttrs,
+              {
+                value: `${nestedAttrsPrefix}${prop}`,
+                enumerable: false,
+                writable: false,
+                configurable: false,
+              },
+              ),
+            )
           }
 
           return currentStore[prop]
@@ -40,12 +54,18 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
         return Reflect.get(target, prop)
       },
       set: function (target: T, prop: string | symbol, value: any) {
-        // Write a merge deep nested objects function (as 'deepmerge lib')
-        // console.log('set', { target, prop, value })
         const currentStore = store$$.getValue() as any
+        const isNestedProp = Boolean(target[nestedAttrs]?.length)
+
 
         const clonedStore = Object.assign({}, currentStore)
-        clonedStore[prop] = value
+
+        if (isNestedProp) {
+          const nestedAttributes = (target[nestedAttrs] as string).split('.')
+          assignNestedProperty(clonedStore, nestedAttributes, prop as string, value)
+        } else {
+          clonedStore[prop] = value
+        }
 
         store$$.next(clonedStore)
 

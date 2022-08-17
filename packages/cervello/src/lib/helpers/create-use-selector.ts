@@ -22,40 +22,11 @@ export type UseSelector<T> = <Attributes extends Array< keyof WithoutType<T, Fun
   isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
   ) => ObjectFromAttributes<T, Attributes>
 
+
+
 export function createUseSelector <T> (store$$: BehaviorSubject<T>): UseSelector<T> {
   const subscribe = subscribeForReactHook(store$$)
   const getValue = store$$.getValue.bind(store$$)
-
-  // const subscribeWithSelectors = (selectors: Array<keyof T>): (onStoreChange: () => void) => () => void => {
-  //   return (onStoreChange: () => void): (() => void) => {
-  //     const subscription = store$$.subscribe(onStoreChange)
-  //     // console.log('1- FUNCTION OF SUBSCRIBE')
-  //     // const subscription = store$$.pipe(distinctUntilChanged((prev, curr) => {
-  //     //   let isEqual = true
-  //     //   selectors.forEach((selector) => {
-  //     //     if (typeof curr[selector] === 'object' && isEqual) {
-  //     //       if (JSON.stringify(prev[selector]) !== JSON.stringify(curr[selector])) {
-  //     //         isEqual = false
-  //     //       }
-  //     //     } else {
-  //     //       if (prev[selector] !== curr[selector] && isEqual) {
-  //     //         isEqual = false
-  //     //       }
-  //     //     }
-  //     //   })
-  //     //   console.log('1- FUNCTION OF distinctUntilChanged', { isEqual })
-
-  //     //   return isEqual
-  //     // })).subscribe(onStoreChange)
-
-  //     return () => {
-  //       subscription.unsubscribe()
-  //     }
-  //   }
-  // }
-
-
-
 
   // USE SELECTOR HOOK -------------------------------------------------
   const useSelector = <Attributes extends Array< keyof WithoutType<T, Function> >>(

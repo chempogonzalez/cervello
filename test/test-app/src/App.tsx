@@ -27,6 +27,7 @@ const middlewares: UseFunction<typeof store> = ({ onPartialChange }): void => {
 const { store, useSelector, useStore } = cervello({
   name: 'Chempo',
   surname: 'Gonzalez',
+  languages: ['spanish', 'english'],
   links: {
     github: '@chempogonzalez',
     twitter: '@_chempo',
@@ -52,16 +53,16 @@ const { store, useSelector, useStore } = cervello({
 function App (): JSX.Element {
   useLogRenders('App')
 
-  // const store = useStore()
-  const x = useSelector(['links', 'name'])
-  console.log({ x })
+  const store = useStore()
+  // const x = useSelector(['links', 'name'])
+  console.log({ store })
 
   // const store = useStore()
 
 
   const handleOnClick = () => {
     // store.addLink('test', Math.random())
-    store.links = { tet: 1 } as any
+    store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
 
   return (
