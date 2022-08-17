@@ -9,7 +9,7 @@
     "dev": "pnpm run --recursive --parallel dev",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint-fix": "npm run lint -- --fix",
-    "release": "bumpp package.json packages/cervello/package.json && pnpm --filter=@cervello/react publish --dry-run --access public"
+    "release": "bumpp package.json packages/cervello/package.json && pnpm --filter=@cervello/react publish --access public"
   },
   "author": "Chempo",
   "license": "MIT",
