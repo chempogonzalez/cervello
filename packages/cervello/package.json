@@ -39,11 +39,13 @@
   },
   "sideEffects": false,
   "keywords": [
-    "state",
     "react",
+    "state",
     "manager",
+    "management",
+    "redux",
+    "zustand",
     "reactive",
-    "immutable",
     "observable",
     "global",
     "local"
