@@ -11,10 +11,11 @@
 
 
 ## 🚀 **Features**
-- ⚛️ Truly reactive on item change
+- ⚛️ Truly reactive on store change **_(nested properties too!!)_**
 - ✅ Super simple and minimalistic API
-- 🐨 Listen to attributes or items lazily
+- 🐨 Listen properties lazily
 - 👌 No unnecessary re-renders
+- 🔒 Immutable changes
 - 🔑 Typescript support
 
 ## 📦 **Install**
@@ -50,8 +51,12 @@ export const {
   useSelector, // The hook to use the selectors (part of the store)
 } = cervello({ count: 0 })
 ```
+<br>
+<br>
 
-
+------
+### `API Documentation`
+------
 ### 🟢 `store`
 The store object that you can use `inside or outside react components` to modify the store. It will automatically notify all the components listening for changes
 
@@ -148,7 +153,7 @@ const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void 
 
 ## 💡 Features out-of-the-box
 ###  **`💠 Nested objects reactivity`**
-You can change a nested property of an object and it will be notified automatically
+You can change a nested property of an object and it will be notified automatically as well without any problem
 
 ```jsx
 import { store } from './other-example'
