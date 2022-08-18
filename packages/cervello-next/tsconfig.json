@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@observable-lib": [
+        "packages/observable-lib/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+}
