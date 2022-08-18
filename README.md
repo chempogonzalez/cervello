@@ -1,5 +1,5 @@
 # Cervello
-<a href="https://bundlephobia.com/package/@cervello/react@latest"><img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square"></a>
+<a href="https://bundlephobia.com/package/@cervello/react"><img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square"></a>
 <a href="https://www.npmjs.com/package/@cervello/react"><img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
 
 
@@ -46,13 +46,14 @@ export const {
   store,       // The store object
   useStore,    // The hook to use the store
   useSelector, // The hook to use the selectors (part of the store)
+  reset,       // The function to reset the store 
 } = cervello({ count: 0 })
 ```
 <br>
 <br>
 
 ------
-### `API Documentation`
+###  `📖 Documentation`
 ------
 ### 🟢 `store`
 The store object that you can use `inside or outside react components` to modify the store. It will automatically notify all the components listening for changes
@@ -77,6 +78,8 @@ const CounterButton = () => (
 )
 ```
 
+<br>
+
 ### 🟢 `useStore`
 
 React hook that allows you to have a reactive store which re-renders when a new value was set
@@ -89,6 +92,8 @@ const CounterLabel = () => {
   return (<span>{ count }</span>)
 }
 ```
+
+<br>
 
 ### 🟢 `useSelector`
 
@@ -108,6 +113,25 @@ const CounterLabel = () => {
   return (<span>{ count }</span>)
 }
 ```
+<br>
+
+### 🟢 `reset`
+
+Function to reset the store to the initial value
+```tsx
+import { reset } from './store-example'
+
+function LogoutButton() {
+
+  const onLogoutClick = () => reset()
+
+  return (<button onClick={onLogoutClick}>Logout</button>)
+}
+```
+
+<br>
+
+
 ----
 ### 🟣 The `Use` function
 The use function allows you to implement side effects due to a store change
