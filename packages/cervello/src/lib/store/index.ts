@@ -55,7 +55,7 @@ interface CervelloStore<StoreType> {
  *
  * @returns - { store, useStore, useSelector }
  */
-export function cervello <T extends Record<any, unknown>> (initialValue: T): CervelloStore<T>
+export function cervello <T> (initialValue: T): CervelloStore<T>
 
 
 /**
