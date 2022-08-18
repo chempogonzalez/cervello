@@ -13,3 +13,7 @@ export function deepClone <T> (obj: any): T {
   }
   return newObj as T
 }
+
+export function isEqualObject (obj1: any, obj2: any): boolean {
+  return JSON.stringify(obj1) === JSON.stringify(obj2)
+}

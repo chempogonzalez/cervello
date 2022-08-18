@@ -1,6 +1,7 @@
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs'
 
 import { createUseSelector, createUseStore, proxifyStore } from '../helpers'
+import { isEqualObject } from '../utils'
 
 import type { WithoutType } from '../../types/shared'
 import type { UseSelector } from '../helpers'
@@ -81,7 +82,7 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
   const cervelloStore = {
     store: proxiedStore,
     reset () {
-      if (JSON.stringify(store$$.getValue()) !== JSON.stringify(defaultValue)) {
+      if (isEqualObject(store$$.getValue(), defaultValue)) {
         store$$.next(defaultValue)
       }
     },
@@ -106,7 +107,7 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
                   const prevPropertyValue = prev[selector]
                   if (isEqual) {
                     isEqual = typeof currentPropertyValue === 'object'
-                      ? JSON.stringify(prevPropertyValue) === JSON.stringify(currentPropertyValue)
+                      ? isEqualObject(prevPropertyValue, currentPropertyValue)
                       : prevPropertyValue === currentPropertyValue
                   }
                 })

@@ -1,5 +1,5 @@
 
-import { deepClone } from '../utils'
+import { deepClone, isEqualObject } from '../utils'
 
 import type { BehaviorSubject } from 'rxjs'
 
@@ -68,7 +68,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
           clonedStore[prop] = value
         }
 
-        if (JSON.stringify(currentStore) !== JSON.stringify(clonedStore)) {
+        if (isEqualObject(currentStore, clonedStore)) {
           store$$.next(clonedStore)
         }
 

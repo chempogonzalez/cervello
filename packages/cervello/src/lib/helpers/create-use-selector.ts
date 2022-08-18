@@ -2,6 +2,7 @@
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector'
 
 
+import { isEqualObject } from '../utils'
 import { subscribeForReactHook } from '../utils/subscribe-for-react'
 import { proxifyStore } from './proxify-store'
 
@@ -40,8 +41,7 @@ export function createUseSelector <T> (store$$: BehaviorSubject<T>): UseSelector
       (store) => getPartialObjectFromAttributes(selectors, store),
       (prev, curr) => isEqualFunction
         ? isEqualFunction(prev, curr)
-        : JSON.stringify(prev) === JSON.stringify(curr),
-
+        : isEqualObject(prev, curr),
     )
 
     return proxifyStore(store$$ as any, store)
