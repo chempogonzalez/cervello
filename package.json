@@ -1,6 +1,6 @@
 {
   "name": "cervello-monorepo",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Simplest and truly reactive state manager for React",
   "type": "module",
   "private": true,
