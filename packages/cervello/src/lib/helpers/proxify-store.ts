@@ -1,9 +1,11 @@
 
+import { deepClone } from '../utils'
+
 import type { BehaviorSubject } from 'rxjs'
 
 
 
-const NESTED_ATTRIBUTES_SYMBOL = '$$nested-attributes'
+const NESTED_ATTRIBUTES_SYMBOL = '$$parent-attributes'
 const nestedAttrs = Symbol(NESTED_ATTRIBUTES_SYMBOL)
 
 function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, value: unknown): any {
@@ -18,7 +20,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
     storeObject,
     {
       get: function (target: T, prop: string | symbol): any {
-        const currentStore = target as any
+        const currentStore = target
 
         if (prop in currentStore) {
           if (typeof currentStore[prop] === 'function') {
@@ -29,21 +31,22 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
           if (currentStore[prop]
             && typeof currentStore[prop] === 'object'
             && !Array.isArray(currentStore[prop])
-            && typeof prop !== 'symbol') {
+            && typeof prop !== 'symbol'
+          ) {
             const currentNestedAttrs = target?.[nestedAttrs]
             const nestedAttrsPrefix = currentNestedAttrs ? `${currentNestedAttrs as string}.` : ''
+
             return proxifyStore(
               store$$,
-              Object.defineProperty({
-                ...currentStore[prop],
-              },
-              nestedAttrs,
-              {
-                value: `${nestedAttrsPrefix}${prop}`,
-                enumerable: false,
-                writable: false,
-                configurable: false,
-              },
+              Object.defineProperty(
+                currentStore[prop],
+                nestedAttrs,
+                {
+                  value: `${nestedAttrsPrefix}${prop}`,
+                  enumerable: false,
+                  writable: false,
+                  configurable: false,
+                },
               ),
             )
           }
@@ -56,9 +59,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
       set: function (target: T, prop: string | symbol, value: any) {
         const currentStore = store$$.getValue() as any
         const isNestedProp = Boolean(target[nestedAttrs]?.length)
-
-
-        const clonedStore = Object.assign({}, currentStore)
+        const clonedStore = deepClone<any>(currentStore)
 
         if (isNestedProp) {
           const nestedAttributes = (target[nestedAttrs] as string).split('.')
@@ -67,9 +68,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
           clonedStore[prop] = value
         }
 
-        store$$.next(clonedStore)
+        if (JSON.stringify(currentStore) !== JSON.stringify(clonedStore)) {
+          store$$.next(clonedStore)
+        }
 
-        return Reflect.set(target, prop, value)
+        return true
       },
     },
   )

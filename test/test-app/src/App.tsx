@@ -24,7 +24,7 @@ const middlewares: UseFunction<typeof store> = ({ onPartialChange }): void => {
 }
 
 
-const { store, useSelector, useStore } = cervello({
+const { store, useSelector, useStore, reset } = cervello({
   name: 'Chempo',
   surname: 'Gonzalez',
   languages: ['spanish', 'english'],
@@ -61,7 +61,7 @@ function App (): JSX.Element {
 
 
   const handleOnClick = () => {
-    // store.addLink('test', Math.random())
+    store.addLink('test', 2)
     store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
 
@@ -74,6 +74,8 @@ function App (): JSX.Element {
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
       <button onClick={handleOnClick}>Change</button>
+      <button onClick={() => reset()}>Reset</button>
+
       {/* <div className='grid'>
         <section className='number-string-state'>
           <NumberStringState />

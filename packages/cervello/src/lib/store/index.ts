@@ -30,20 +30,22 @@ interface CervelloStore<StoreType> {
   useStore: () => StoreType
   /** Hook to react to changes done to 'store' in all the attributes provided */
   useSelector: UseSelector<StoreType>
+  /** Resets the value to the initial value passed in */
+  reset: () => void
   /** Functions to be attached to changes in a general way (tracking, loggers, ... etc) */
   use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType>
 }
 
-/**
- * @note Currently not working
- */
-export interface CervelloOptions {
-  persist?:
-  | boolean
-  // | {
-  //   getItem: (key: string) => any
-  // }
-}
+// /**
+//  * @note Currently not working
+//  */
+// export interface CervelloOptions {
+//   persist?:
+//   | boolean
+//   // | {
+//   //   getItem: (key: string) => any
+//   // }
+// }
 
 
 /**
@@ -52,7 +54,7 @@ export interface CervelloOptions {
  *
  * @returns - { store, useStore, useSelector }
  */
-export function cervello <T extends Record<any, unknown>> (initialValue: T, options?: CervelloOptions): CervelloStore<T>
+export function cervello <T extends Record<any, unknown>> (initialValue: T): CervelloStore<T>
 
 
 /**
@@ -61,7 +63,7 @@ export function cervello <T extends Record<any, unknown>> (initialValue: T, opti
  *
  * @returns - { store, useStore, useSelector }
  */
-export function cervello <T> (initialValue: () => T, options?: CervelloOptions): CervelloStore<T>
+export function cervello <T> (initialValue: () => T): CervelloStore<T>
 
 
 
@@ -70,14 +72,19 @@ export function cervello <T> (initialValue: () => T, options?: CervelloOptions):
 
 
 /** @internal */
-export function cervello <T> (initialValue: T | (() => T), options?: CervelloOptions): CervelloStore<T> {
-  const defaultValue = (typeof initialValue === 'function' ? (initialValue as any)() : initialValue) as T
+export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
+  const defaultValue = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
   const store$$ = new BehaviorSubject<T>(defaultValue)
 
-  const proxiedStore = proxifyStore<T>(store$$, { ...defaultValue })
+  const proxiedStore = proxifyStore<T>(store$$, defaultValue)
 
   const cervelloStore = {
     store: proxiedStore,
+    reset () {
+      if (JSON.stringify(store$$.getValue()) !== JSON.stringify(defaultValue)) {
+        store$$.next(defaultValue)
+      }
+    },
 
     // TO BE SEPARATED IN cervello/react package ---------------------
     useStore: createUseStore<T>(store$$),
@@ -88,16 +95,10 @@ export function cervello <T> (initialValue: T | (() => T), options?: CervelloOpt
       functionList.forEach((func: any) => {
         func({
           onChange (cb: any) {
-            // store$$.pipe(
-            //   // pairwise(),
-            //   // switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
-            // ).subscribe((_) => cb(proxiedStore))
             store$$.subscribe((_) => cb(proxiedStore))
           },
           onPartialChange (attrs: Array<keyof T>, cb: any) {
             store$$.pipe(
-              // pairwise(),
-              // switchMap(([oldValue, newValue]) => (oldValue !== newValue ? of(newValue) : NEVER)),
               distinctUntilChanged((prev, curr) => {
                 let isEqual = true
                 attrs.forEach((selector) => {

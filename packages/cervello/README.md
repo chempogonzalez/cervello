@@ -2,14 +2,11 @@
 <a href="https://bundlephobia.com/package/@cervello/react@latest"><img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square"></a>
 <a href="https://www.npmjs.com/package/@cervello/react"><img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
 
-> (Beta version) - Working on SSR,persist options and documentation page
 
 
+> 🤯 Simplest and truly reactive state manager for React
 
-
-🤯 Simplest and truly reactive state manager for React
-
-
+_Working on a documentation page with examples_
 ## 🚀 **Features**
 - ⚛️ Truly reactive on store change **_(nested properties too!!)_**
 - ✅ Super simple and minimalistic API
