@@ -180,8 +180,8 @@ import { store } from './other-example'
 
 const AddressChanger = () => {
   return (
-    <button onClick={() => { store.address.street = 'New street' }}>
-      Change street to Seville
+    <button onClick={() => { store.address.city = 'Seville' }}>
+      Change city to Seville
     </button>
   )
 }
@@ -194,6 +194,7 @@ import { useSelector } from './other-example'
 const Address = () => {
   const { address } = useSelector(['address'])
   const { street, city } = address
+
   return (
     <div>
       <span>{ street }</span>
