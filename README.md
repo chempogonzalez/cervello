@@ -1,10 +1,9 @@
 # Cervello
-<a href="https://bundlephobia.com/package/@cervello/react"><img src="https://img.shields.io/bundlephobia/minzip/@cervello/react?color=red&label=BundlePhobia%20size&style=flat-square"></a>
-<a href="https://www.npmjs.com/package/@cervello/react"><img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
+<img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
 
 
 
-> 🤯 Simplest and truly reactive state manager for React
+> 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
 
 _Working on a documentation page with examples_
 ## 🚀 **Features**
