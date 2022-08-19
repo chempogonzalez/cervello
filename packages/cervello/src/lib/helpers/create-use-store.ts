@@ -1,5 +1,5 @@
 
-import { useSyncExternalStore } from 'use-sync-external-store/shim'
+import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js'
 
 import { subscribeForReactHook } from '../utils/subscribe-for-react'
 import { proxifyStore } from './proxify-store'
