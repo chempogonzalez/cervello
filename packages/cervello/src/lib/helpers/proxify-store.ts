@@ -68,7 +68,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
           clonedStore[prop] = value
         }
 
-        if (isEqualObject(currentStore, clonedStore)) {
+        if (!isEqualObject(currentStore, clonedStore)) {
           store$$.next(clonedStore)
         }
 

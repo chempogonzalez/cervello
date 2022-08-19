@@ -82,7 +82,7 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
   const cervelloStore = {
     store: proxiedStore,
     reset () {
-      if (isEqualObject(store$$.getValue(), defaultValue)) {
+      if (!isEqualObject(store$$.getValue(), defaultValue)) {
         store$$.next(defaultValue)
       }
     },
