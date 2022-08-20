@@ -1,0 +1,78 @@
+---
+id: use-selector
+title: useSelector
+sidebar_position: 3
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Get partial store properties from React component
+## useSelector
+
+```ts
+const { useSelector } = cervello({ example: true })
+```
+
+## Description
+React hook that allows you to have a reactive store which re-renders when a new value was set on properties you specified
+
+## Input parameters
+| Name            | Type                    |default value  |description        |
+|:---             |:---                     |:---           |---	          |
+| selectors       | Array of string         | -             |  array of store properties to be watched  |
+| isEqualFunction | (prev, curr) => boolean | JSON.stringify === comparison | custom function to compare the new value with the old one    |
+
+## Return value
+
+| Type    |default value         |Is reactive?  |
+|:---     |:---             |---	        |
+| **Partial store Object**  | _initialValue_  | Yes, you can modify a property and it will notify all the components  |
+
+:::caution
+If you want to modify a property of the store, you need to use it without destructuring, like this:
+```tsx
+const { useSelector } = cervello({ isActive: true })
+
+const ExampleComponent = () => {
+  const partialStore = useSelector(['isActive'])
+  return (
+    <button onClick={() => partialStore.isActive = false}>
+      Set Active to false
+    </button>
+  )
+}
+```
+:::
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { useSelector } from './store-example'
+
+    const CounterLabel = () => {
+      /**
+      * This will re-render just only when the property `count` changes
+      */
+      const { count } = useSelector(['count'])
+
+      return (<span>{ count }</span>)
+    }
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+      import { useSelector } from './store-example'
+
+      const CounterLabel = () => {
+        /**
+        * This will re-render just only when the property `count` changes
+        */
+        const { count } = useSelector(['count'])
+
+        return (<span>{ count }</span>)
+      }
+
+  </TabItem>
+</Tabs>
+

@@ -1,0 +1,70 @@
+---
+id: use-store
+title: useStore
+sidebar_position: 2
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Get / set store from React component
+## useStore
+
+```ts
+const { useStore } = cervello({ example: true })
+```
+
+## Description
+React hook that allows you to have a reactive store which re-renders when a new value was set
+
+## Return value
+
+| Type    |default value         |Is reactive?  |
+|:---     |:---             |---	        |
+| **Object**  | _initialValue_  | Yes, you can modify a property and it will notify all the components using `useStore` to be re-render   |
+
+:::caution
+If you want to modify a property of the store, you need to use it without destructuring, like this:
+```tsx
+const { useStore } = cervello({ isActive: true })
+
+const ExampleComponent = () => {
+  const store = useStore()
+  return (
+    <button onClick={() => store.isActive = false}>
+      Set Active to false
+    </button>
+  )
+}
+```
+:::
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { useStore } from './store-example'
+
+    const CounterLabel = () => {
+      const { count } = useStore()
+
+      return (<span>{ count }</span>)
+    }
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { useStore } from './store-example'
+
+    const CounterLabel = () => {
+      /** 
+       * You can destructure the store because it just reads
+       * the value without any changes to store
+       */
+      const { count } = useStore()
+
+      return (<span>{ count }</span>)
+    }
+
+  </TabItem>
+</Tabs>
+

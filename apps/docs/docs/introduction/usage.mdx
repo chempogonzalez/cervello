@@ -1,0 +1,77 @@
+---
+id: usage
+title: Usage
+description: 'Introduction > Usage: Code example with a basic store'
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+## Description
+The `cervello` function allows you to create a new store in an easy way.
+Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
+
+
+## Example
+
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    // store-example.ts
+
+    import { cervello } from '@cervello/react'
+
+    export const {
+      store,       // Reactive store object
+      useStore,    // Hook to use the store
+      useSelector, // Hook to use the selectors (part of the store)
+      reset,       // Function to reset the store 
+    } = cervello({ count: 0 })
+
+
+    /**
+    * You can also use a function to initialize the store
+    * (i.e.: initialize the store from a persisted data)
+    */
+    const { store } = cervello(() => {
+      return { count: 0 }
+    })
+    
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    // store-example.ts
+
+    import { cervello } from '@cervello/react'
+
+    interface Store {
+      count: number
+    }
+
+    export const {
+      store,       // Reactive store object
+      useStore,    // Hook to use the store
+      useSelector, // Hook to use the selectors (part of the store)
+      reset,       // Function to reset the store 
+    } = cervello<Store>({ count: 0 })
+
+
+    /**
+    * You can also use a function to initialize the store
+    * (i.e.: initialize the store from a persisted data)
+    */
+    const { store } = cervello<Store>(() => {
+      return { count: 0 }
+    })
+    ```
+
+  </TabItem>
+</Tabs>
+
+
+## Basic Example
+
+The whole global state of your app is stored in an object tree inside a single _store_.
+The only way to change the state tree is to create an _action_, an object describing what happened, and _dispatch_ it to the store.
+To specify how state gets updated in response to an action, you write pure _reducer_ functions that calculate a new state based on the old state and the action.

@@ -13,18 +13,84 @@
   --ifm-color-primary-light: #33925d;
   --ifm-color-primary-lighter: #359962;
   --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
-[data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+html[data-theme='dark'] {
+  --ifm-color-primary: #1affe4;
+  --ifm-color-primary-dark: #00fddf;
+  --ifm-color-primary-darker: #00efd3;
+  --ifm-color-primary-darkest: #00c5ae;
+  --ifm-color-primary-light: #36ffe7;
+  --ifm-color-primary-lighter: #44ffe9;
+  --ifm-color-primary-lightest: #6effee;
+  --ifm-background-color: #062932;
+  --ifm-background-surface-color: #052129;
+  --ifm-menu-color: white
+
+}
+
+
+div.language-ts.theme-code-block {
+  box-shadow: 0px 5px 10px 6px #062129;
+}
+
+
+
+blockquote {
+  font-size: 20px;
+  font-weight: bold;
+  background: var(--ifm-background-surface-color);
+  border-color: white;
+  border-radius: 10px;
+  border-width: 4px;
+  padding: 10px 20px;
+  margin-bottom: 50px;
+  margin-top: 50px !important;
+
+}
+
+
+h1 {
+  position: relative;
+}
+
+h1::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  border-radius: 20px;
+  background: linear-gradient(to right, var(--ifm-color-primary-darkest), transparent);
+  opacity: 0.13;
+}
+
+h2 {
+  position: relative;
+}
+h2::before{
+  content: '';
+  position: absolute;
+  inset: -18;
+  width: 42px;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -17px;
+  border-radius: 50%;
+  aspect-ratio: 1/1;
+  z-index: -1;
+  background: var(--ifm-color-primary-darkest);
+  opacity: 0.2;
+}
+
+.pagination-nav__link {
+  border-radius: 115px;
+  border-width: 0.3px;
+  border-color: black;
+  padding: 21px 36px;
+  background: var(--ifm-background-surface-color);
 }

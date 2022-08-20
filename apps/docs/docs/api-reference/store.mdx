@@ -1,0 +1,58 @@
+---
+id: store
+title: store
+sidebar_position: 1
+
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Reactive store object
+## store
+```ts
+const { store } = cervello({ example: true })
+```
+
+## Description
+Cervello returns an object with `store` attribute.
+It's a reactive object that you can use `inside or outside react components` to modify the store.
+It will automatically notify all the components listening for changes
+
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes 
+     */
+    const increment = () => { store.count++ }
+
+    const CounterButton = () => (
+      <button onClick={increment}>
+        Increment
+      </button>
+    )
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes 
+     */
+    const increment = () => { store.count++ }
+
+    const CounterButton = () => (
+      <button onClick={increment}>
+        Increment
+      </button>
+    )
+
+  </TabItem>
+</Tabs>
