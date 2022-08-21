@@ -47,6 +47,10 @@ const ExampleComponent = () => {
     import { useStore } from './store-example'
 
     const CounterLabel = () => {
+      /** 
+       * You can destructure the store because it just reads
+       * the value without any changes to store
+       */
       const { count } = useStore()
 
       return (<span>{ count }</span>)

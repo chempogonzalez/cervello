@@ -1,0 +1,64 @@
+---
+id: persist
+title: Persist in localStorage
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+## Description
+Cervello provides you out-of-the-box support for nested objects.<br/>
+You can change a nested property of an object and it will be notified automatically as well without any problem
+
+
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    // store.js
+    import { cervello } from '@cervello/react'
+
+    const { store } = cervello(() => {
+      const themeValue = localStorage.getItem('theme') ?? 'dark'
+
+      return {
+        theme: themeValue,
+        user: null,
+      }
+    }).use(persistTheme)
+
+      
+    const persistTheme = ({ onPartialChange }) => {
+      onPartialChange(['theme'], (store) => {
+        localStorage.setItem('theme', store.theme)
+      })
+    }
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    // store.ts
+    import { cervello } from '@cervello/react'
+    import type { UseFunction } from '@cervello/react'
+
+    const { store } = cervello(() => {
+      const themeValue = localStorage.getItem('theme') ?? 'dark'
+
+      return {
+        theme: themeValue,
+        user: null,
+      }
+    }).use(persistTheme)
+
+      
+    
+    const persistTheme: UseFunction<typeof store> = ({ onPartialChange }): void => {
+      onPartialChange(['theme'], (store) => {
+        localStorage.setItem('theme', store.theme)
+      })
+    }
+
+  </TabItem>
+</Tabs>
+

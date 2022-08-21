@@ -1,0 +1,98 @@
+---
+id: use
+title: use
+sidebar_position: 4
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Side-Effects when store change
+## use
+
+```ts
+const { store } = cervello({ example: true })
+                    .use(logger)
+```
+
+## Description
+The use function allows you to implement side effects due to a store change
+
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { cervello } from '@cervello/react'
+
+    const { store } = cervello({
+      name: 'chempo',
+      surname: 'gonzalez'
+    }).use(logger, /* ... */)
+  
+
+    const logger: = ({ onChange }): void => {
+      onChange((store) => {
+        console.log('[Store-changed] to ==>', store)
+      })
+    }
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { cervello } from '@cervello/react'
+    import type { UseFunction } from '@cervello/react'
+
+    const { store } = cervello({
+      name: 'chempo',
+      surname: 'gonzalez'
+    }).use(logger, /* ... */)
+  
+
+    const logger: UseFunction<typeof store> = ({ onChange }): void => {
+      onChange((store) => {
+        console.log('[Store-changed] to ==>', store)
+      })
+    }
+
+  </TabItem>
+</Tabs>
+
+
+## Utility functions provided
+
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    const logger = ({ onChange, onPartialChange }) => {
+      // Listen to all the changes happened in the store
+      onChange((store) => {
+        console.log('Store changed to :>>', store)
+      });
+
+      // Listen to the changes happened in the store's attributes provided
+      onPartialChange(['name'], (store) => {
+        console.log('Name has changed to:', store.name)
+      })
+    }
+    
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import type { UseFunction } from '@cervello/react'
+
+    const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void => {
+      // Listen to all the changes happened in the store
+      onChange((store) => {
+        console.log('Store changed to :>>', store)
+      });
+
+      // Listen to the changes happened in the store's attributes provided
+      onPartialChange(['name'], (store) => {
+        console.log('Name has changed to:', store.name)
+      })
+    }
+
+  </TabItem>
+</Tabs>
+

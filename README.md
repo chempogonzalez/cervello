@@ -171,6 +171,7 @@ const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void 
 ------
 <br>
 
+
 ## 💡 Features out-of-the-box
 ###  **`💠 Nested objects reactivity`**
 You can change a nested property of an object and it will be notified automatically as well without any problem
