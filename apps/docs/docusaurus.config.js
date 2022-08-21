@@ -41,7 +41,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/chempogonzalez/cervello/tree/main/apps/docs/',
         },
         // blog: {
         //   showReadingTime: true,
@@ -68,8 +68,8 @@ const config = {
       navbar: {
         title: 'Cervello',
         // logo: {
-        //   alt: 'My Site Logo',
-        //   src: 'img/logo.svg',
+        //   alt: 'Cervello logo image',
+        //   src: '🤯',
         // },
         items: [
           {
@@ -82,10 +82,10 @@ const config = {
             label: 'Documentation',
           },
           // { to: '/blog', label: 'Blog', position: 'left' },
-          {
-            type: 'localeDropdown',
-            position: 'right',
-          },
+          // {
+          //   type: 'localeDropdown',
+          //   position: 'right',
+          // },
           // {
           //   href: 'https://github.com/facebook/docusaurus',
           //   label: 'GitHub',
