@@ -27,12 +27,16 @@ html[data-theme='dark'] {
   --ifm-background-color: #062932;
   --ifm-background-surface-color: #052129;
   --ifm-menu-color: white
-
 }
 
 
 div.language-ts.theme-code-block {
   box-shadow: 0px 5px 10px 6px #062129;
+}
+
+
+.footer, .footer-dark {
+  --ifm-footer-background-color: var(--ifm-background-surface-color);
 }
 
 
