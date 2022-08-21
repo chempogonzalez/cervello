@@ -17,16 +17,16 @@ const { useSelector } = cervello({ example: true })
 React hook that allows you to have a reactive store which re-renders when a new value was set on properties you specified
 
 ## Input parameters
-| Name            | Type                    |default value  |description        |
-|:---             |:---                     |:---           |---	          |
-| selectors       | Array of string         | -             |  array of store properties to be watched  |
-| isEqualFunction | (prev, curr) => boolean | JSON.stringify === comparison | custom function to compare the new value with the old one    |
+| Name              | Type                      |Default                                |Description        |
+|---                |---                        |---                                    |---	              |
+| `selectors`       | `Array<string>`           | **Required**                          |  Array of store properties to be watched  |
+| `isEqualFunction` | `(prev, curr) => boolean` | Equals comparison with JSON.stringify | Custom function to compare the new value with the old one    |
 
 ## Return value
 
-| Type    |default value         |Is reactive?  |
-|:---     |:---             |---	        |
-| **Partial store Object**  | _initialValue_  | Yes, you can modify a property and it will notify all the components  |
+| Type                    |Default                    |Description      |
+|---                      |---                        |---	            |
+| `Partial store Object`  | _`initial store value`_   | Returned object with the properties you selected. <br/> You can modify a property and it will notify all the components  |
 
 :::caution
 If you want to modify a property of the store, you need to use it without destructuring, like this:

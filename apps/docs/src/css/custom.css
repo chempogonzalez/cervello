@@ -41,13 +41,12 @@ blockquote {
   font-size: 20px;
   font-weight: bold;
   background: var(--ifm-background-surface-color);
-  border-color: white;
+  border-color: hsl(0deg 0% 100% / 47%);
   border-radius: 10px;
-  border-width: 4px;
+  border-width: 2px;
   padding: 10px 20px;
   margin-bottom: 50px;
   margin-top: 50px !important;
-
 }
 
 
@@ -84,7 +83,9 @@ h2::before{
   aspect-ratio: 1/1;
   z-index: -1;
   background: var(--ifm-color-primary-darkest);
-  opacity: 0.2;
+  opacity: 0.1;
+  filter: blur(3px)
+
 }
 
 .pagination-nav__link {

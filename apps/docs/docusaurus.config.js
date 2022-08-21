@@ -8,7 +8,7 @@ const lightCodeTheme = require('prism-react-renderer/themes/vsLight')
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Cervello Reactive State',
-  tagline: 'Dinosaurs are cool',
+  tagline: '🤯 Simplest and truly reactive state manager for React',
   url: 'https://your-docusaurus-test-site.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -17,7 +17,7 @@ const config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'chempo', // Usually your GitHub org/user name.
+  organizationName: '@chempogonzalez', // Usually your GitHub org/user name.
   projectName: '@cervello', // Usually your repo name.
 
   // Even if you don't use internalization, you can use this field to set useful
@@ -60,16 +60,19 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'My Site',
+        title: 'Cervello',
         logo: {
           alt: 'My Site Logo',
           src: 'img/logo.svg',
         },
         items: [
           {
+            style: {
+              marginRight: '3rem',
+            },
             type: 'doc',
             docId: 'introduction/getting-started',
-            position: 'left',
+            position: 'right',
             label: 'Documentation',
           },
           // { to: '/blog', label: 'Blog', position: 'left' },
@@ -87,15 +90,15 @@ const config = {
       footer: {
         style: 'dark',
         links: [
-          {
-            title: 'Docs',
-            items: [
-              {
-                label: 'Tutorial',
-                to: '/docs/intro',
-              },
-            ],
-          },
+          // {
+          //   title: 'Docs',
+          //   items: [
+          //     {
+          //       label: 'Tutorial',
+          //       to: '/docs/intro',
+          //     },
+          //   ],
+          // },
           {
             title: 'Community',
             items: [

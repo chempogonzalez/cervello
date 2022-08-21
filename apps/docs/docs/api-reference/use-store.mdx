@@ -16,11 +16,13 @@ const { useStore } = cervello({ example: true })
 ## Description
 React hook that allows you to have a reactive store which re-renders when a new value was set
 
+
 ## Return value
 
-| Type    |default value         |Is reactive?  |
-|:---     |:---             |---	        |
-| **Object**  | _initialValue_  | Yes, you can modify a property and it will notify all the components using `useStore` to be re-render   |
+| Type      |Default                    |Description      |
+|---        |---                        |---	            |
+| `Object`  | _`initial store value`_   | Returned store object . <br/> You can modify it and it will notify all the components  |
+
 
 :::caution
 If you want to modify a property of the store, you need to use it without destructuring, like this:
