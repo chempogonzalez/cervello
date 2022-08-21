@@ -24,7 +24,7 @@ React hook that allows you to have a reactive store which re-renders when a new 
 | `Object`  | _`initial store value`_   | Returned store object . <br/> You can modify it and it will notify all the components  |
 
 
-:::caution
+:::caution To consider
 If you want to modify a property of the store, you need to use it without destructuring, like this:
 ```tsx
 const { useStore } = cervello({ isActive: true })

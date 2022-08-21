@@ -4,6 +4,10 @@ id: getting-started
 title: Getting started with Cervello
 description: 'Introduction > Getting Started: Resources to get started learning and using Cervello'
 ---
+:::note
+
+Web is currently on development. Sorry for the inconvenience.
+:::
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
 

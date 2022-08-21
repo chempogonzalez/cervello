@@ -28,4 +28,13 @@ const sidebars = {
    */
 }
 
+
+
+
+// ## Basic Example
+
+// The whole global state of your app is stored in an object tree inside a single _store_.
+// The only way to change the state tree is to create an _action_, an object describing what happened, and _dispatch_ it to the store.
+// To specify how state gets updated in response to an action, you write pure _reducer_ functions that calculate a new state based on the old state and the action.
+
 module.exports = sidebars

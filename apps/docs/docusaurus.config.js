@@ -36,6 +36,7 @@ const config = {
         docs: {
           breadcrumbs: false,
           showLastUpdateTime: true,
+          sidebarCollapsed: false,
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
@@ -59,6 +60,7 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+
       colorMode: {
         defaultMode: 'dark',
         disableSwitch: true,
@@ -134,7 +136,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: 'Built by @chempogonzalez.',
       },
       prism: {
         theme: lightCodeTheme,
