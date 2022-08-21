@@ -9,7 +9,7 @@ const lightCodeTheme = require('prism-react-renderer/themes/vsLight')
 const config = {
   title: 'Cervello Reactive State',
   tagline: '🤯 Simplest and truly reactive state manager for React',
-  url: 'https://your-docusaurus-test-site.com',
+  url: 'https://cervello-docs.vercel.app',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -67,10 +67,10 @@ const config = {
       },
       navbar: {
         title: 'Cervello',
-        logo: {
-          alt: 'My Site Logo',
-          src: 'img/logo.svg',
-        },
+        // logo: {
+        //   alt: 'My Site Logo',
+        //   src: 'img/logo.svg',
+        // },
         items: [
           {
             style: {

@@ -95,3 +95,8 @@ h2::before{
   padding: 21px 36px;
   background: var(--ifm-background-surface-color);
 }
+
+
+.menu__list-item-collapsible > a, .menu__list-item-collapsible > a.menu__link--active {
+  background-color: var(--ifm-background-surface-color) !important;
+}
