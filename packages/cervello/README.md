@@ -1,11 +1,15 @@
 # Cervello
-<img src="https://img.shields.io/npm/v/@cervello/react?color=yellow&style=flat-square"></a>
+<img src="https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square"></a>
 
+
+<img src="../../assets/emoji-logo.png" style="display:block;">
 
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
 
-_Working on a documentation page with examples_
+## 📖 [Documentation website](https://www.cervello.dev)
+
+
 ## 🚀 **Features**
 - ⚛️ Truly reactive on store change **_(nested properties too!!)_**
 - ✅ Super simple and minimalistic API
@@ -170,6 +174,7 @@ const logger: UseFunction<typeof store> = ({ onChange, onPartialChange }): void 
 ```
 ------
 <br>
+
 
 ## 💡 Features out-of-the-box
 ###  **`💠 Nested objects reactivity`**
