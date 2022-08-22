@@ -2,7 +2,7 @@
 <img src="https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square"></a>
 
 
-<img src="../../assets/emoji-logo.png" style="display:block;">
+<img src="https://github.com/chempogonzalez/cervello/blob/main/assets/emoji-logo.png" style="display:block;">
 
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
