@@ -1,0 +1,73 @@
+{
+  "version": "0.2",
+  "gitignoreRoot": ".",
+  "useGitignore": true,
+  "caseSensitive": false,
+  "dictionaries": [
+    "css",
+    "html",
+    "fonts",
+    "typescript",
+    "softwareTerms",
+    "companies",
+    "lorem-ipsum",
+    "project-words"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-words",
+      "path": "./project-words.txt",
+      "noSuggest": true
+    }
+  ],
+  "ignorePaths": [
+    "CHANGELOG.md",
+    "package.json",
+    "project-words.txt",
+    "__snapshots__",
+    "*.min.*"
+  ],
+  "ignoreRegExpList": ["Email", "Urls", "#[\\w-]*"],
+  "overrides": [
+    {
+      // Make sure TypeScript files are NOT case and accent Sensitive.
+      "filename": "**/*.tsx",
+      "languageSettings": [
+        {
+          "languageId": "*",
+          "caseSensitive": false
+        }
+      ]
+    },
+    {
+      // Make sure TypeScript files are NOT case and accent Sensitive.
+      "filename": "**/*.ts",
+      "languageSettings": [
+        {
+          "languageId": "*",
+          "caseSensitive": false
+        }
+      ]
+    },
+    {
+      // Make sure TypeScript files are NOT case and accent Sensitive.
+      "filename": "**/*.mdx",
+      "languageSettings": [
+        {
+          "languageId": "*",
+          "caseSensitive": false
+        }
+      ]
+    },
+    {
+      // Make sure TypeScript files are NOT case and accent Sensitive.
+      "filename": "**/*.md",
+      "languageSettings": [
+        {
+          "languageId": "*",
+          "caseSensitive": false
+        }
+      ]
+    }
+  ]
+}

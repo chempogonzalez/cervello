@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react'
 import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js'
 
 import { subscribeForReactHook } from '../utils/subscribe-for-react'
@@ -17,7 +18,9 @@ export function createUseStore <T> (store$$: BehaviorSubject<T>): () => T {
   const useStore = (): T => {
     const store = useSyncExternalStore(subscribe, getValue, getValue)
 
-    return proxifyStore(store$$, store)
+    const cachedStore = useMemo(() => proxifyStore(store$$, store), [store])
+
+    return cachedStore
   }
 
 

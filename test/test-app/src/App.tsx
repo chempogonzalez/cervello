@@ -3,6 +3,7 @@ import './App.scss'
 // import { NumberStringState } from './states-examples/number-string/NumberStringState'
 // import { ObjectState } from './states-examples/object/ObjectState'
 import { cervello } from '@cervello/react'
+import { useEffect, useState } from 'react'
 
 import { useLogRenders } from './useLogRenders'
 
@@ -52,24 +53,32 @@ const { store, useSelector, useStore, reset } = cervello({
 
 function App (): JSX.Element {
   useLogRenders('App')
+  const [t, setT] = useState(Math.random())
 
-  const store = useStore()
-  // const x = useSelector(['links', 'name'])
-  console.log({ store })
+
+  const x = useSelector(['links', 'name'])
 
   // const store = useStore()
+  useEffect(() => {
+    console.log('changing reference!')
+    setT(Math.random())
+    // store.name = `${Math.random()}`
+  }, [x])
 
 
   const handleOnClick = () => {
-    store.addLink('test', 2)
-    store.languages = [...store.languages, ({ test: Math.random() })] as any
+    // store.addLink('test', 2)
+    store.name = `${Math.random()}`
+    // store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
 
   return (
     <div className='App'>
       <h1>Cervello examples</h1>
 
-      <pre>{JSON.stringify(store, null, 2)}</pre>
+      <h3>t: {JSON.stringify(t, null, 2)}</h3>
+
+      <pre>{JSON.stringify(x, null, 2)}</pre>
       <hr />
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 

@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react'
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector.js'
 
 
@@ -44,7 +45,9 @@ export function createUseSelector <T> (store$$: BehaviorSubject<T>): UseSelector
         : isEqualObject(prev, curr),
     )
 
-    return proxifyStore(store$$ as any, store)
+    const cachedStore = useMemo(() => proxifyStore(store$$ as any, store), [store])
+
+    return cachedStore
   }
 
   return useSelector
