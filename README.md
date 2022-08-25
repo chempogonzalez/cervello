@@ -2,13 +2,13 @@
 <img src="https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square"></a>
 
 
-
-<img src="./assets/emoji-logo.png" style="display:block;">
+<img src="https://github.com/chempogonzalez/cervello/blob/main/assets/emoji-logo.png" style="display:block;">
 
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
 
 ## 📖 [Documentation website](https://www.cervello.dev)
+
 
 ## 🚀 **Features**
 - ⚛️ Truly reactive on store change **_(nested properties too!!)_**
@@ -210,6 +210,9 @@ const Address = () => {
 ```
 
 
+---------
+## To see more in depth explanations 📖 [Documentation website](https://www.cervello.dev)
+--------
 
 
 ## 🤓 Happy Code

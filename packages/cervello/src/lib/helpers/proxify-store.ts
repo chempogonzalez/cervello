@@ -5,7 +5,7 @@ import type { BehaviorSubject } from 'rxjs'
 
 
 
-const NESTED_ATTRIBUTES_SYMBOL = '$$parent-attributes'
+const NESTED_ATTRIBUTES_SYMBOL = '$$p-a' // parent-attributes
 const nestedAttrs = Symbol(NESTED_ATTRIBUTES_SYMBOL)
 
 function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, value: unknown): any {
@@ -21,16 +21,17 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
     {
       get: function (target: T, prop: string | symbol): any {
         const currentStore = target
+        const valueByProp = currentStore[prop]
 
         if (prop in currentStore) {
-          if (typeof currentStore[prop] === 'function') {
-            return currentStore[prop].bind(proxifyStore(store$$, currentStore, proxiedNestedObjectMap))
+          if (typeof valueByProp === 'function') {
+            return valueByProp.bind(proxifyStore(store$$, currentStore, proxiedNestedObjectMap))
           }
 
           // Return proxied object for nested reactivity
-          if (currentStore[prop]
-            && typeof currentStore[prop] === 'object'
-            && !Array.isArray(currentStore[prop])
+          if (valueByProp
+            && typeof valueByProp === 'object'
+            && !Array.isArray(valueByProp)
             && typeof prop !== 'symbol'
           ) {
             const currentNestedAttrs = target?.[nestedAttrs]
@@ -42,7 +43,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
             const proxiedNestedObject = proxifyStore(
               store$$,
               Object.defineProperty(
-                currentStore[prop],
+                valueByProp,
                 nestedAttrs,
                 {
                   value: `${nestedAttrsPrefix}${prop}`,
@@ -59,7 +60,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
             return proxiedNestedObject
           }
 
-          return currentStore[prop]
+          return valueByProp
         }
 
         return Reflect.get(target, prop)
@@ -67,13 +68,14 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
       set: function (target: T, prop: string | symbol, value: any) {
         const currentStore = store$$.getValue() as any
         const isNestedProp = Boolean(target[nestedAttrs]?.length)
-        const clonedStore = deepClone<any>(currentStore)
+        let clonedStore = deepClone<any>(currentStore)
 
         if (isNestedProp) {
           const nestedAttributes = (target[nestedAttrs] as string).split('.')
           assignNestedProperty(clonedStore, nestedAttributes, prop as string, value)
         } else {
-          clonedStore[prop] = value
+          if (prop === '$value') clonedStore = value
+          else clonedStore[prop] = value
         }
 
         if (!isEqualObject(currentStore, clonedStore)) {

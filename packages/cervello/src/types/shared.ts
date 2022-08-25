@@ -13,3 +13,5 @@ export type WithoutType<T, V, WithNever = {
 export type ObjectFromAttributes<T, Attributes extends Array< keyof WithoutType<T, Function> > > = {
   [k in Attributes[number]]: T[k]
 }
+
+export type Maybe<T> = T | undefined

@@ -3,13 +3,12 @@ import { BehaviorSubject, distinctUntilChanged } from 'rxjs'
 import { createUseSelector, createUseStore, proxifyStore } from '../helpers'
 import { isEqualObject } from '../utils'
 
-import type { WithoutType } from '../../types/shared'
+import type { Maybe, WithoutType } from '../../types/shared'
 import type { UseSelector } from '../helpers'
 
 
 
 // const STORE_SYMBOL = '__cervello-store__'
-
 
 interface CervelloStoreUseParam<StoreType> {
   onChange: (cb: (store: StoreType) => void) => void
@@ -55,7 +54,7 @@ interface CervelloStore<StoreType> {
  *
  * @returns - { store, useStore, useSelector }
  */
-export function cervello <T> (initialValue: T): CervelloStore<T>
+export function cervello <T> (initialValue: T): CervelloStore<T & { $value: Maybe<T> }>
 
 
 /**
@@ -64,20 +63,21 @@ export function cervello <T> (initialValue: T): CervelloStore<T>
  *
  * @returns - { store, useStore, useSelector }
  */
-export function cervello <T> (initialValue: () => T): CervelloStore<T>
-
-
+export function cervello <T> (initialValue: () => T): CervelloStore<T& { $value: Maybe<T> }>
 
 
 
 
 
 /** @internal */
-export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
+export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T & { $value: Maybe<T> }> {
   const defaultValue = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
   const store$$ = new BehaviorSubject<T>(defaultValue)
 
+  // Object map to keep reference of nested object proxies created
+  // to avoid problems with reference equality (i.e.: useEffect dependencies array)
   const proxiedNestedObjectMap: any = {}
+
   const proxiedStore = proxifyStore<T>(store$$, defaultValue, proxiedNestedObjectMap)
 
   const cervelloStore = {
@@ -124,5 +124,5 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
 
 
 
-  return cervelloStore as CervelloStore<T>
+  return cervelloStore as CervelloStore<T & { $value: Maybe<T> }>
 }

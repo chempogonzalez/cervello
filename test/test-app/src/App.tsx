@@ -53,22 +53,25 @@ const { store, useSelector, useStore, reset } = cervello({
 
 function App (): JSX.Element {
   useLogRenders('App')
-  const [t, setT] = useState(Math.random())
+  // const [t, setT] = useState(Math.random())
 
 
+  const i = useStore()
   const x = useSelector(['links', 'name'])
 
-  // const store = useStore()
-  useEffect(() => {
-    console.log('changing reference!')
-    setT(Math.random())
-    // store.name = `${Math.random()}`
-  }, [x])
+  console.log('..............', i.$value)
+  // // const store = useStore()
+  // useEffect(() => {
+  //   console.log('changing reference!')
+  //   setT(Math.random())
+  //   // store.name = `${Math.random()}`
+  // }, [x])
 
 
   const handleOnClick = () => {
     // store.addLink('test', 2)
-    store.name = `${Math.random()}`
+    // store.name = `${Math.random()}`
+    store.$value = { jeje: 1 } as any
     // store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
 
@@ -76,9 +79,9 @@ function App (): JSX.Element {
     <div className='App'>
       <h1>Cervello examples</h1>
 
-      <h3>t: {JSON.stringify(t, null, 2)}</h3>
+      {/* <h3>t: {JSON.stringify(i, null, 2)}</h3> */}
 
-      <pre>{JSON.stringify(x, null, 2)}</pre>
+      <pre>{JSON.stringify(i, null, 2)}</pre>
       <hr />
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
