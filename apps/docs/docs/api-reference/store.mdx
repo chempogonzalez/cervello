@@ -19,6 +19,7 @@ It's a reactive object that you can use `inside or outside react components` to 
 It will automatically notify all the components listening for changes
 
 
+
 ## Example
 <Tabs groupId="code-language">
   <TabItem value="jsx" label="JavaScript">
@@ -56,3 +57,73 @@ It will automatically notify all the components listening for changes
 
   </TabItem>
 </Tabs>
+
+
+<br/>
+
+
+
+## Special attribute
+The returned Store object is your initial value passed in + a custom attribute called `$value`. <br/>
+This attribute is used to replace the complete store if needed in a single transaction
+
+| Name              | Type                      |Default                                |Description        |
+|---                |---                        |---                                    |---	              |
+| `$value`          | `Initial store object`    | undefined                             |  Attribute to be used as a **setter** to replace completely the store |
+
+<br/>
+
+## Attribute $value example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes.
+     * Complete replace of the store
+     */
+    const setLoggedUser = () => {
+      const newStore = {
+        isLoggedIn: true,
+        userName: 'Chempo'
+      }
+
+      store.$value = newStore
+    }
+
+    const LoginComponent = () => (
+      <button onClick={setLoggedUser}>
+        Login
+      </button>
+    )
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes.
+     * Complete replace of the store
+     */
+    const setLoggedUser = (): void => {
+      const newStore: typeof store = {
+        isLoggedIn: true,
+        userName: 'Chempo'
+      }
+
+      store.$value = newStore
+    }
+
+    const LoginComponent = () => (
+      <button onClick={setLoggedUser}>
+        Login
+      </button>
+    )
+
+  </TabItem>
+</Tabs>
+
