@@ -77,7 +77,8 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
   const defaultValue = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
   const store$$ = new BehaviorSubject<T>(defaultValue)
 
-  const proxiedStore = proxifyStore<T>(store$$, defaultValue)
+  const proxiedNestedObjectMap: any = {}
+  const proxiedStore = proxifyStore<T>(store$$, defaultValue, proxiedNestedObjectMap)
 
   const cervelloStore = {
     store: proxiedStore,
@@ -88,8 +89,8 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T> {
     },
 
     // TO BE SEPARATED IN cervello/react package ---------------------
-    useStore: createUseStore<T>(store$$),
-    useSelector: createUseSelector<T>(store$$),
+    useStore: createUseStore<T>(store$$, proxiedNestedObjectMap),
+    useSelector: createUseSelector<T>(store$$, proxiedNestedObjectMap),
     // ---------------------------------------------------------------
 
     use (...functionList: any) {

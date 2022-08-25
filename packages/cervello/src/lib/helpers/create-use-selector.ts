@@ -26,7 +26,7 @@ export type UseSelector<T> = <Attributes extends Array< keyof WithoutType<T, Fun
 
 
 
-export function createUseSelector <T> (store$$: BehaviorSubject<T>): UseSelector<T> {
+export function createUseSelector <T> (store$$: BehaviorSubject<T>, proxiedNestedObjectMap: any): UseSelector<T> {
   const subscribe = subscribeForReactHook(store$$)
   const getValue = store$$.getValue.bind(store$$)
 
@@ -45,7 +45,11 @@ export function createUseSelector <T> (store$$: BehaviorSubject<T>): UseSelector
         : isEqualObject(prev, curr),
     )
 
-    const cachedStore = useMemo(() => proxifyStore(store$$ as any, store), [store])
+    const cachedStore = useMemo(() => proxifyStore(
+      store$$ as any,
+      store,
+      proxiedNestedObjectMap,
+    ), [store])
 
     return cachedStore
   }

@@ -9,7 +9,7 @@ import type { BehaviorSubject } from 'rxjs'
 
 
 
-export function createUseStore <T> (store$$: BehaviorSubject<T>): () => T {
+export function createUseStore <T> (store$$: BehaviorSubject<T>, proxiedNestedObjectMap: any): () => T {
   const subscribe = subscribeForReactHook(store$$)
   const getValue = store$$.getValue.bind(store$$)
 
@@ -18,7 +18,7 @@ export function createUseStore <T> (store$$: BehaviorSubject<T>): () => T {
   const useStore = (): T => {
     const store = useSyncExternalStore(subscribe, getValue, getValue)
 
-    const cachedStore = useMemo(() => proxifyStore(store$$, store), [store])
+    const cachedStore = useMemo(() => proxifyStore(store$$, store, proxiedNestedObjectMap), [store])
 
     return cachedStore
   }

@@ -13,7 +13,7 @@ function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, v
   obj[prop] = value
 }
 
-export function proxifyStore <T extends Record<string | symbol, any>> (store$$: BehaviorSubject<T>, storeObject: T): T {
+export function proxifyStore <T extends Record<string | symbol, any>> (store$$: BehaviorSubject<T>, storeObject: T, proxiedNestedObjectMap: any): T {
   if (typeof storeObject !== 'object') throw new Error('Store must be an object')
 
   return new Proxy<T>(
@@ -24,7 +24,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
 
         if (prop in currentStore) {
           if (typeof currentStore[prop] === 'function') {
-            return currentStore[prop].bind(proxifyStore(store$$, currentStore))
+            return currentStore[prop].bind(proxifyStore(store$$, currentStore, proxiedNestedObjectMap))
           }
 
           // Return proxied object for nested reactivity
@@ -36,7 +36,10 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
             const currentNestedAttrs = target?.[nestedAttrs]
             const nestedAttrsPrefix = currentNestedAttrs ? `${currentNestedAttrs as string}.` : ''
 
-            return proxifyStore(
+            const cacheKey = `${nestedAttrsPrefix}-${prop}`
+            if (proxiedNestedObjectMap[cacheKey]) return proxiedNestedObjectMap[cacheKey]
+
+            const proxiedNestedObject = proxifyStore(
               store$$,
               Object.defineProperty(
                 currentStore[prop],
@@ -48,7 +51,12 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
                   configurable: false,
                 },
               ),
+              proxiedNestedObjectMap,
             )
+
+            proxiedNestedObjectMap[cacheKey] = proxiedNestedObject
+
+            return proxiedNestedObject
           }
 
           return currentStore[prop]
