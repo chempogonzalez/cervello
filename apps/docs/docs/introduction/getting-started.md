@@ -4,10 +4,6 @@ id: getting-started
 title: Getting started with Cervello
 description: 'Introduction > Getting Started: Resources to get started learning and using Cervello'
 ---
-:::note
-
-Web is currently on development. Sorry for the inconvenience.
-:::
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
 
@@ -29,13 +25,18 @@ It's as simple as reassign a new value to the store properties. It will make an 
 
 
 ## Installation
+#### NPM
 ```bash
-# NPM
 npm install @cervello/react
+```
 
-# Yarn
+#### YARN
+```bash
 yarn add @cervello/react
+```
 
-# PNPM
+
+#### PNPM
+```bash
 pnpm add @cervello/react
 ```
