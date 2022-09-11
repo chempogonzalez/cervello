@@ -67,10 +67,10 @@ const config = {
       },
       navbar: {
         title: 'Cervello',
-        // logo: {
-        //   alt: 'Cervello logo image',
-        //   src: '🤯',
-        // },
+        logo: {
+          alt: 'Cervello logo image',
+          src: 'img/favicon-32x32.png',
+        },
         items: [
           {
             style: {

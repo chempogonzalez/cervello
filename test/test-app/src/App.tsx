@@ -57,9 +57,9 @@ function App (): JSX.Element {
 
 
   const i = useStore()
-  const x = useSelector(['links', 'name'])
+  // const x = useSelector(['links', 'name'])
 
-  console.log('..............', i.$value)
+  // console.log('..............', i.$value)
   // // const store = useStore()
   // useEffect(() => {
   //   console.log('changing reference!')
@@ -68,10 +68,14 @@ function App (): JSX.Element {
   // }, [x])
 
 
+  useEffect(() => {
+    console.log('Changing links')
+  }, [i.links])
+
   const handleOnClick = () => {
-    // store.addLink('test', 2)
-    // store.name = `${Math.random()}`
-    store.$value = { jeje: 1 } as any
+    // i.addLink('test', { fdf: 1 })
+    i.links = { t: `${Math.random()}` }
+    // store.$value = { jeje: 1 } as any
     // store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
 

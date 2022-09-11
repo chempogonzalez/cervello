@@ -1,0 +1,69 @@
+---
+id: listen-for-changes
+title: Listen for changes from components
+sidebar_position: 2
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+## Description
+Due to immutability and object reference persistance, cervello allows you to listen for changes with a normal `useEffect`
+in case you need to execute some function when store change
+
+
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    // address-changer.jsx
+    import { useEffect } from 'react'
+    import { useAddressStore } from './other-example'
+
+    const AddressChanger = () => {
+      const store = useAddressStore()
+
+      useEffect(() => {
+        console.log('City has changed to: ', store.address.city)
+      }, [store.address.city])
+
+      return (
+        <>
+          <p>City: {store.address.city}</p>
+
+          <button onClick={() => { store.address.city = 'Seville' }}>
+            Change city to Seville
+          </button>
+        </>
+      )
+    }
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    // address-changer.jsx
+    import { useEffect } from 'react'
+    import { useAddressStore } from './other-example'
+
+    const AddressChanger = () => {
+      const store = useAddressStore()
+
+      useEffect(() => {
+        console.log('City has changed to: ', store.address.city)
+      }, [store.address.city])
+
+      return (
+        <>
+          <p>City: {store.address.city}</p>
+
+          <button onClick={() => { store.address.city = 'Seville' }}>
+            Change city to Seville
+          </button>
+        </>
+      )
+    }
+
+  </TabItem>
+</Tabs>
+
