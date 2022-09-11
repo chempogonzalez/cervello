@@ -20,12 +20,13 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
     storeObject,
     {
       get: function (target: T, prop: string | symbol): any {
-        const currentStore = target
+
+        const currentStore = target?.[nestedAttrs] ? target : store$$.getValue()
         const valueByProp = currentStore[prop]
 
         if (prop in currentStore) {
           if (typeof valueByProp === 'function') {
-            return valueByProp.bind(proxifyStore(store$$, currentStore, proxiedNestedObjectMap))
+            return valueByProp.bind(proxifyStore(store$$, store$$.getValue(), proxiedNestedObjectMap))
           }
 
           // Return proxied object for nested reactivity
@@ -38,7 +39,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (store$$: 
             const nestedAttrsPrefix = currentNestedAttrs ? `${currentNestedAttrs as string}.` : ''
 
             const cacheKey = `${nestedAttrsPrefix}-${prop}`
-            if (proxiedNestedObjectMap[cacheKey]) return proxiedNestedObjectMap[cacheKey]
+
+            if (
+              proxiedNestedObjectMap[cacheKey]
+              && isEqualObject(proxiedNestedObjectMap[cacheKey], valueByProp)
+            ) return proxiedNestedObjectMap[cacheKey]
 
             const proxiedNestedObject = proxifyStore(
               store$$,
