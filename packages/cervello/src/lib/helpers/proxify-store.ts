@@ -13,6 +13,9 @@ function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, v
   obj[prop] = value
 }
 
+export function proxifyStore <T extends any> (store$$: BehaviorSubject<T>, storeObject: T, proxiedNestedObjectMap: any): T
+
+
 export function proxifyStore <T extends Record<string | symbol, any>> (store$$: BehaviorSubject<T>, storeObject: T, proxiedNestedObjectMap: any): T {
   if (typeof storeObject !== 'object') throw new Error('Store must be an object')
 

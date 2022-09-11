@@ -78,7 +78,7 @@ export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T & { 
   // to avoid problems with reference equality (i.e.: useEffect dependencies array)
   const proxiedNestedObjectMap: any = {}
 
-  const proxiedStore = proxifyStore<any>(store$$, defaultValue, proxiedNestedObjectMap) as T
+  const proxiedStore = proxifyStore<T>(store$$, defaultValue, proxiedNestedObjectMap)
 
   const cervelloStore = {
     store: proxiedStore,
