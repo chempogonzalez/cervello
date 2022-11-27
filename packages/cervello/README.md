@@ -3,7 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square)](https://www.npmjs.com/package/@cervello/react)
 
 
+<a href="https://www.cervello.dev">
 <img src="https://github.com/chempogonzalez/cervello/blob/main/assets/emoji-logo.png" style="display:block;">
+</a>
 
 
 > 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
@@ -11,9 +13,11 @@
 
 <br>
 
----
-## 📖 Getting started in the [Documentation website](https://www.cervello.dev)
----
+<a href="https://www.cervello.dev">
+  <p align="center">
+      <strong>📖 Documentation website</strong>
+  </p>
+</a>
 
 <br>
 
