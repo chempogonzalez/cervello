@@ -53,7 +53,7 @@
   "scripts": {
     "release": "pnpx bumpp --push=false && npm publish --access public",
     "test": "vitest --watch",
-    "test:release": "vitest",
+    "test:release": "vitest run",
     "prepublishOnly": "pnpm build",
     "build": "(rm -rf types & rm -rf dist) && microbundle",
     "dev": "microbundle watch"
