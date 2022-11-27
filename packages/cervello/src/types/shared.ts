@@ -22,4 +22,4 @@ export type Maybe<T> = T | undefined
 export type UseSelector<T> = <Attributes extends Array< Exclude<keyof WithoutType<T, Function>, '$value'> >>(
   selectors: Attributes,
   isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
-) => ObjectFromAttributes<T, Attributes>
+) => T
