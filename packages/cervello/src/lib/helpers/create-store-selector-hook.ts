@@ -21,7 +21,7 @@ export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxie
   const useStoreWithSelectors = <Attributes extends Array<keyof WithoutType<T, Function>>>(
     selectors: Attributes,
     isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
-  ): ObjectFromAttributes<T, Attributes> => {
+  ): T => {
     const prevSlice = useRef< ObjectFromAttributes<T, Attributes> | null >(null)
 
     const store = useSyncExternalStore(
