@@ -3,7 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
-    "lib": ["DOM", "DOM.Iterable", "ESNext", "ES2017"],
+    "lib": [ "DOM", "DOM.Iterable", "ESNext", "ES2017" ],
     "downlevelIteration": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,6 +18,6 @@
     "baseUrl": "./",
     "incremental": true
   },
-  "types": ["vitest/globals"],
-  "exclude": ["node_modules", "dist", "**/node_modules", "**/dist"],
+  "types": [ "vitest/globals" ],
+  "exclude": [ "node_modules", "dist", "**/node_modules", "**/dist" ]
 }

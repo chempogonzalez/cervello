@@ -3,7 +3,7 @@ import './App.scss'
 // import { NumberStringState } from './states-examples/number-string/NumberStringState'
 // import { ObjectState } from './states-examples/object/ObjectState'
 import { cervello } from '@cervello/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { useLogRenders } from './useLogRenders'
 
@@ -19,8 +19,8 @@ const log: UseFunction<typeof store> = ({ onChange }): void => {
 
 
 const middlewares: UseFunction<typeof store> = ({ onPartialChange }): void => {
-  onPartialChange(['surname'], (s) => {
-    console.log('[middleware-partial] - sliced store changed', s)
+  onPartialChange(['name', 'surname'], (s) => {
+    console.log('[[[[[ middleware-partial]]]]]]] - sliced store changed', s.surname)
   })
 }
 
@@ -44,10 +44,10 @@ const { store, useSelector, useStore, reset } = cervello({
   addSecondSurname (surname: string): void {
     this.surname = `${this.surname} ${surname}`
   },
-})
-
-
+}, { reactiveNestedObjects: true })
   .use(middlewares, log)
+
+
 
 
 
@@ -55,9 +55,14 @@ function App (): JSX.Element {
   useLogRenders('App')
   // const [t, setT] = useState(Math.random())
 
+  const iRef = useRef<any>(null)
 
   const i = useStore()
-  // const x = useSelector(['links', 'name'])
+
+  console.log('~~~~~~~~~~~~~~ . ', { 'isSame????': iRef.current === i, i, 'LINKS': JSON.stringify(i.links) })
+  iRef.current = i
+  // const x = useSelector(['surname'])
+  // console.log('************ own ', Object.hasOwn(x, 'name'))
 
   // console.log('..............', i.$value)
   // // const store = useStore()
@@ -69,12 +74,13 @@ function App (): JSX.Element {
 
 
   useEffect(() => {
-    console.log('Changing links')
+    console.log('Changing links', { links: JSON.stringify(i.links) })
   }, [i.links])
 
   const handleOnClick = () => {
-    // i.addLink('test', { fdf: 1 })
-    i.links = { t: `${Math.random()}` }
+    i.addLink('test', { fdf: 1 })
+    // i.addSecondSurname('Franco!')
+    // i.links = { t: `${Math.random()}` }
     // store.$value = { jeje: 1 } as any
     // store.languages = [...store.languages, ({ test: Math.random() })] as any
   }
@@ -83,14 +89,23 @@ function App (): JSX.Element {
     <div className='App'>
       <h1>Cervello examples</h1>
 
-      {/* <h3>t: {JSON.stringify(i, null, 2)}</h3> */}
+      <h3>t: {JSON.stringify(i.surname, null, 2)}</h3>
 
       <pre>{JSON.stringify(i, null, 2)}</pre>
+      <pre>
+        LINKS::
+
+
+        {JSON.stringify(i.links, null, 2)}
+        </pre>
+
       <hr />
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
-      <button onClick={handleOnClick}>Change</button>
-      <button onClick={() => reset()}>Reset</button>
+      <div className="btn-wrapper">
+        <button onClick={handleOnClick}>Change</button>
+        <button onClick={() => reset()}>Reset</button>
+      </div>
 
       {/* <div className='grid'>
         <section className='number-string-state'>

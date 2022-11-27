@@ -4,4 +4,3 @@ node_modules
 # don't lint nyc coverage output
 coverage
 
-package.json

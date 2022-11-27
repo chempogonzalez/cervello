@@ -20,6 +20,14 @@ h2{
   box-sizing: border-box;
 }
 
+.btn-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  position: fixed;
+  bottom: 20%;
+}
+
 
 button {
   font-size: 20px;

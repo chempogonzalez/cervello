@@ -1,97 +1,109 @@
+import { deepClone, isObject, okTarget } from '../utils'
+import { INTERNAL_VALUE_PROP } from './constants'
 
-import { deepClone, isEqualObject } from '../utils'
-
-import type { BehaviorSubject } from 'rxjs'
-
-
-
-const NESTED_ATTRIBUTES_SYMBOL = '$$p-a' // parent-attributes
-const nestedAttrs = Symbol(NESTED_ATTRIBUTES_SYMBOL)
-
-function assignNestedProperty (obj: any, keyPath: Array<string>, prop: string, value: unknown): any {
-  keyPath.forEach((key) => { obj = obj[key] })
-  obj[prop] = value
-}
-
-export function proxifyStore <T extends any> (store$$: BehaviorSubject<T>, storeObject: T, proxiedNestedObjectMap: any): T
+import type { CacheableSubject } from '../utils/subject'
 
 
-export function proxifyStore <T extends Record<string | symbol, any>> (store$$: BehaviorSubject<T>, storeObject: T, proxiedNestedObjectMap: any): T {
-  if (typeof storeObject !== 'object') throw new Error('Store must be an object')
 
-  return new Proxy<T>(
-    storeObject,
-    {
-      get: function (target: T, prop: string | symbol): any {
+export function proxifyStore <T> (store$$: CacheableSubject<T>, objectToProxify: T, proxiedNestedObjectMap: any, shouldProxifyNestedObj: boolean): T
 
-        const currentStore = target?.[nestedAttrs] ? target : store$$.getValue()
-        const valueByProp = currentStore[prop]
+export function proxifyStore <T extends Record<string | symbol, any>> (
+  store$$: CacheableSubject<T>,
+  objectToProxify: T,
+  proxiedNestedObjectMap: any,
+  shouldProxifyNestedObj: boolean,
+): T {
+  if (typeof objectToProxify !== 'object') throw new Error('Store must be an object')
 
-        if (prop in currentStore) {
-          if (typeof valueByProp === 'function') {
-            return valueByProp.bind(proxifyStore(store$$, store$$.getValue(), proxiedNestedObjectMap))
-          }
+  /**  Proxify object and push value to subject */
+  return new Proxy(objectToProxify, {
+    get (t, prop) {
+      const target = okTarget(t)
 
-          // Return proxied object for nested reactivity
-          if (valueByProp
-            && typeof valueByProp === 'object'
-            && !Array.isArray(valueByProp)
-            && typeof prop !== 'symbol'
-          ) {
-            const currentNestedAttrs = target?.[nestedAttrs]
-            const nestedAttrsPrefix = currentNestedAttrs ? `${currentNestedAttrs as string}.` : ''
+      /**
+       * Return actual object when toJSON
+       * is called instead of $$value$$
+       */
+      if (prop === 'toJSON') return () => target
 
-            const cacheKey = `${nestedAttrsPrefix}-${prop}`
+      const propertyValue = Reflect.get(target, prop)
 
-            if (
-              proxiedNestedObjectMap[cacheKey]
-              && isEqualObject(proxiedNestedObjectMap[cacheKey], valueByProp)
-            ) return proxiedNestedObjectMap[cacheKey]
+      if (shouldProxifyNestedObj && isObject(propertyValue)) {
+        /**  Check if cached to return instead of re-create new proxy */
+        const cachedValue = proxiedNestedObjectMap[prop]
+        if (cachedValue) return cachedValue
 
-            const proxiedNestedObject = proxifyStore(
-              store$$,
-              Object.defineProperty(
-                valueByProp,
-                nestedAttrs,
-                {
-                  value: `${nestedAttrsPrefix}${prop}`,
-                  enumerable: false,
-                  writable: false,
-                  configurable: false,
-                },
-              ),
-              proxiedNestedObjectMap,
-            )
+        const proxied = proxifyStore(store$$ as any, propertyValue, proxiedNestedObjectMap, shouldProxifyNestedObj)
+        // const proxied = proxifyStore(store$$ as any, { $$value$$: propertyValue }, proxiedNestedObjectMap, shouldProxifyNestedObj)
 
-            proxiedNestedObjectMap[cacheKey] = proxiedNestedObject
 
-            return proxiedNestedObject
-          }
+        /**  Store in cache the proxiedObject */
+        proxiedNestedObjectMap[prop] = proxied
 
-          return valueByProp
-        }
+        return proxied
+      }
 
-        return Reflect.get(target, prop)
-      },
-      set: function (target: T, prop: string | symbol, value: any) {
-        const currentStore = store$$.getValue() as any
-        const isNestedProp = Boolean(target[nestedAttrs]?.length)
-        let clonedStore = deepClone<any>(currentStore)
 
-        if (isNestedProp) {
-          const nestedAttributes = (target[nestedAttrs] as string).split('.')
-          assignNestedProperty(clonedStore, nestedAttributes, prop as string, value)
-        } else {
-          if (prop === '$value') clonedStore = value
-          else clonedStore[prop] = value
-        }
-
-        if (!isEqualObject(currentStore, clonedStore)) {
-          store$$.next(clonedStore)
-        }
-
-        return true
-      },
+      return propertyValue
     },
-  )
+
+
+
+    set (t, prop, value) {
+      const isRootTarget = Object.hasOwn(t, INTERNAL_VALUE_PROP)
+
+      /** Reset store */
+      if (prop === '$value' && isRootTarget) {
+        const newValue = deepClone(value)
+        proxiedNestedObjectMap = {}
+        Reflect.set(t, INTERNAL_VALUE_PROP, newValue)
+        store$$.next(newValue)
+        return true
+      }
+
+      const target = okTarget(t)
+      const propValue = Reflect.get(target, prop)
+
+      /**  If new value is the same as the current one */
+      if (propValue === value) return true
+
+
+      /**  Set value to target reference */
+      Reflect.set(target, prop, value)
+
+      /**
+       * Override nested proxied object in
+       * cache proxying the new value passed in
+       */
+      if (shouldProxifyNestedObj && isObject(propValue) && proxiedNestedObjectMap[prop]) {
+        // TODO: check if --- proxiedNestedObjectMap[prop].$value = value --- is possible instead of recreating new nested
+        // proxiedNestedObjectMap[prop].$value = value
+        const proxied = proxifyStore(store$$ as any, value, proxiedNestedObjectMap, shouldProxifyNestedObj)
+        proxiedNestedObjectMap[prop] = proxied
+      }
+
+      /** Push new store object (new reference for immutability) */
+      store$$.next(Object.assign({}, store$$.getValue()))
+
+      return true
+    },
+
+
+
+
+    has (t, p) {
+      return Reflect.has(okTarget(t), p)
+    },
+
+    ownKeys (t) {
+      return Reflect.ownKeys(okTarget(t))
+    },
+
+    getOwnPropertyDescriptor (t, p) {
+      return Reflect.getOwnPropertyDescriptor(okTarget(t), p)
+    },
+
+
+
+  }) as any
 }

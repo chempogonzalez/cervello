@@ -2,6 +2,9 @@
   "name": "docs",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=16.14"
+  },
   "scripts": {
     "docusaurus": "docusaurus",
     "docs:dev": "docusaurus start",
@@ -40,8 +43,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "engines": {
-    "node": ">=16.14"
   }
 }

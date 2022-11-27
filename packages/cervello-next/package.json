@@ -1,43 +1,18 @@
 {
   "name": "@cervello/next",
+  "type": "module",
   "version": "0.10.3",
   "description": "🤯 NextJS wrapper to allow SSR with @cervello/react",
-  "main": "./dist/cervello-next.cjs",
-  "module": "./dist/cervello-next.esm.js",
-  "unpkg": "./dist/cervello-next.umd.js",
-  "type": "module",
-  "source": "src/index.ts",
-  "types": "./types/index.d.ts",
-  "exports": {
-    ".": {
-      "browser": "./dist/cervello-next.esm.js",
-      "import": "./dist/cervello-next.esm.js",
-      "umd": "./dist/cervello-next.umd.js",
-      "require": "./dist/cervello-next.cjs",
-      "default": "./dist/cervello-next.modern.js"
-    },
-    "./types": {
-      "browser": "./types/index.d.ts",
-      "import": "./types/index.d.ts",
-      "require": "./types/index.d.ts",
-      "default": "./types/index.d.ts"
-    }
-  },
-  "files": [
-    "dist",
-    "types"
-  ],
-  "scripts": {
-    "release": "bumpp",
-    "prepublishOnly": "pnpm build",
-    "build": "(rm -rf types & rm -rf dist) && microbundle --alias @observable-lib=../observable-lib/src/index.ts",
-    "devv": "microbundle watch"
-  },
+  "author": "Chempo",
+  "license": "MIT",
+  "homepage": "https://github.com/chempogonzalez/cervello#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chempogonzalez/cervello.git"
   },
-  "sideEffects": false,
+  "bugs": {
+    "url": "https://github.com/chempogonzalez/cervello/issues"
+  },
   "keywords": [
     "react",
     "state",
@@ -50,22 +25,46 @@
     "global",
     "local"
   ],
-  "author": "Chempo",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/chempogonzalez/cervello/issues"
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "browser": "./dist/cervello-next.esm.js",
+      "require": "./dist/cervello-next.cjs",
+      "import": "./dist/cervello-next.esm.js",
+      "umd": "./dist/cervello-next.umd.js",
+      "default": "./dist/cervello-next.modern.js"
+    },
+    "./types": {
+      "browser": "./types/index.d.ts",
+      "require": "./types/index.d.ts",
+      "import": "./types/index.d.ts",
+      "default": "./types/index.d.ts"
+    }
   },
-  "homepage": "https://github.com/chempogonzalez/cervello#readme",
+  "main": "./dist/cervello-next.cjs",
+  "module": "./dist/cervello-next.esm.js",
+  "unpkg": "./dist/cervello-next.umd.js",
+  "source": "src/index.ts",
+  "types": "./types/index.d.ts",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "scripts": {
+    "release": "bumpp",
+    "prepublishOnly": "pnpm build",
+    "build": "(rm -rf types & rm -rf dist) && microbundle --alias @observable-lib=../observable-lib/src/index.ts",
+    "devv": "microbundle watch"
+  },
   "peerDependencies": {
     "@cervello/react": "^0.10.3",
     "next": ">= 12.0.0"
   },
   "dependencies": {},
   "devDependencies": {
-    "@chempo/ec-linter": "^1.0.10",
+    "@cervello/react": "workspace:*",
     "@types/react": "18.0.17",
     "microbundle": "0.15.1",
-    "next": "^12.2.5",
-    "@cervello/react": "workspace:*"
+    "next": "^12.2.5"
   }
 }

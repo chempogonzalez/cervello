@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 export type WithoutType<T, V, WithNever = {
   [K in keyof T]: Exclude<T[K], undefined> extends V
     ? never
@@ -15,3 +16,10 @@ export type ObjectFromAttributes<T, Attributes extends Array< keyof WithoutType<
 }
 
 export type Maybe<T> = T | undefined
+
+
+
+export type UseSelector<T> = <Attributes extends Array<keyof WithoutType<T, Function>>>(
+  selectors: Attributes,
+  isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
+) => ObjectFromAttributes<T, Attributes>

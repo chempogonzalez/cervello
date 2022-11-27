@@ -1,2 +1,2 @@
 export * from './object'
-export * from './subscribe-for-react'
+export * from './subject'

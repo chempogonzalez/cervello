@@ -1,20 +1,25 @@
-import { BehaviorSubject, distinctUntilChanged } from 'rxjs'
+/* eslint-disable @typescript-eslint/ban-types */
+import { createStoreSelectorHook, proxifyStore } from '../helpers'
+import { INTERNAL_VALUE_PROP } from '../helpers/constants'
+import {
+  contentComparer,
+  deepClone,
+  getPartialObjectFromProperties,
+  createCacheableSubject,
+  okTarget,
+} from '../utils'
 
-import { createUseSelector, createUseStore, proxifyStore } from '../helpers'
-import { isEqualObject } from '../utils'
-
-import type { Maybe, WithoutType } from '../../types/shared'
-import type { UseSelector } from '../helpers'
+import type { Maybe, UseSelector, WithoutType } from '../../types/shared'
 
 
-
-// const STORE_SYMBOL = '__cervello-store__'
 
 interface CervelloStoreUseParam<StoreType> {
   onChange: (cb: (store: StoreType) => void) => void
   onPartialChange: <
-    Attributes extends Array< keyof WithoutType<StoreType, Function>>
-  > (selectors: Attributes, cb: (store: StoreType) => void) => void
+    Attributes extends keyof WithoutType<StoreType, Function>,
+    R extends Exclude<Attributes, '$value'>,
+    ArrayOfAttributes extends Array <R>,
+  > (selectors: ArrayOfAttributes, cb: (store: StoreType) => void) => void
 }
 
 /**
@@ -36,85 +41,80 @@ interface CervelloStore<StoreType> {
   use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType>
 }
 
-// /**
-//  * @note Currently not working
-//  */
-// export interface CervelloOptions {
-//   persist?:
-//   | boolean
-//   // | {
-//   //   getItem: (key: string) => any
-//   // }
-// }
+
+export interface CervelloOptions {
+  reactiveNestedObjects: boolean
+}
 
 
 /**
  * Creates a store that is reactive and can be used inside and outside of React components.
- * @param initialValue Object with the default values for the store
+ * @param initialValue - Object with the default values for the store
  *
- * @returns - { store, useStore, useSelector }
+ * @returns - \{ store, useStore, useSelector \}
  */
-export function cervello <T> (initialValue: T): CervelloStore<T & { $value: Maybe<T> }>
+export function cervello <T> (initialValue: T, options?: CervelloOptions): CervelloStore<T & { $value: Maybe<T> }>
 
 
 /**
  * Creates a store that is reactive and can be used inside and outside of React components.
- * @param initialValue Function which returns the default values for the store
+ * @param initialValue - Function which returns the default values for the store
  *
- * @returns - { store, useStore, useSelector }
+ * @returns  \{ store, useStore, useSelector \}
  */
-export function cervello <T> (initialValue: () => T): CervelloStore<T & { $value: Maybe<T> }>
-
-
-
+export function cervello <T> (initialValue: () => T, options?: CervelloOptions): CervelloStore<T & { $value: Maybe<T> }>
 
 
 /** @internal */
-export function cervello <T> (initialValue: T | (() => T)): CervelloStore<T & { $value: Maybe<T> }> {
-  const defaultValue = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
-  const store$$ = new BehaviorSubject<T>(defaultValue)
+export function cervello <T> (
+  initialValue: T | (() => T),
+  options: CervelloOptions = { reactiveNestedObjects: true },
+): CervelloStore<T & { $value: Maybe<T> }> {
+  const defaultValue: T = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
 
-  // Object map to keep reference of nested object proxies created
-  // to avoid problems with reference equality (i.e.: useEffect dependencies array)
+
+  const clonedInitialValue = { [INTERNAL_VALUE_PROP]: deepClone(defaultValue) } as any as T
+
+  /**
+   * Object map to keep reference of nested object proxies created
+   * to avoid problems with reference equality (i.e.: useEffect dependencies array)
+   */
   const proxiedNestedObjectMap: any = {}
 
-  const proxiedStore = proxifyStore<T>(store$$, defaultValue, proxiedNestedObjectMap)
+  const store$$ = createCacheableSubject(clonedInitialValue, false) as any
+  const proxiedStore = proxifyStore<T>(store$$, clonedInitialValue, proxiedNestedObjectMap, options.reactiveNestedObjects)
 
   const cervelloStore = {
     store: proxiedStore,
     reset () {
-      if (!isEqualObject(store$$.getValue(), defaultValue)) {
-        store$$.next(defaultValue)
-      }
+      (proxiedStore as any).$value = defaultValue
     },
 
-    // TO BE SEPARATED IN cervello/react package ---------------------
-    useStore: createUseStore<T>(store$$, proxiedNestedObjectMap),
-    useSelector: createUseSelector<T>(store$$, proxiedNestedObjectMap),
-    // ---------------------------------------------------------------
+    // TO BE SEPARATED IN cervello/react package --------------------------------
+    useStore: createStoreSelectorHook<T>(store$$, proxiedStore, 'full'),
+    useSelector: createStoreSelectorHook<T>(store$$, proxiedStore, 'slice'),
+    // --------------------------------------------------------------------------
 
     use (...functionList: any) {
       functionList.forEach((func: any) => {
         func({
           onChange (cb: any) {
-            store$$.subscribe((_) => cb(proxiedStore))
+            store$$.subscribe({ next: (_: any) => { cb(proxiedStore) } })
           },
           onPartialChange (attrs: Array<keyof T>, cb: any) {
-            store$$.pipe(
-              distinctUntilChanged((prev, curr) => {
-                let isEqual = true
-                attrs.forEach((selector) => {
-                  const currentPropertyValue = curr[selector]
-                  const prevPropertyValue = prev[selector]
-                  if (isEqual) {
-                    isEqual = typeof currentPropertyValue === 'object'
-                      ? isEqualObject(prevPropertyValue, currentPropertyValue)
-                      : prevPropertyValue === currentPropertyValue
-                  }
-                })
-                return isEqual
-              }),
-            ).subscribe((_) => cb(proxiedStore))
+            let prevSlice: any = getPartialObjectFromProperties(attrs, okTarget(clonedInitialValue))
+            store$$.subscribe({
+              next: (v: T) => {
+                const target = okTarget(v)
+                const currentSlice = getPartialObjectFromProperties(attrs, target)
+
+                const isEquals = contentComparer(prevSlice, currentSlice)
+                if (!isEquals) {
+                  cb(proxiedStore)
+                  prevSlice = deepClone(currentSlice)
+                }
+              },
+            })
           },
         })
       })
