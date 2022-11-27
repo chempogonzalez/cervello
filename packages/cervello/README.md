@@ -1,6 +1,7 @@
 # Cervello
 
 [![npm version](https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square)](https://www.npmjs.com/package/@cervello/react)
+[![dfs](https://img.shields.io/bundlephobia/minzip/@cervello/react/latest?color=orange&style=flat-square)](https://bundlephobia.com/package/@cervello/react@latest)
 
 
 <a href="https://www.cervello.dev">
