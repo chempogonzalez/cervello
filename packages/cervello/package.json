@@ -5,7 +5,7 @@
   "description": "🤯 Simplest and truly reactive state manager for React",
   "author": "Chempo",
   "license": "MIT",
-  "homepage": "https://github.com/chempogonzalez/cervello#readme",
+  "homepage": "https://www.cervello.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chempogonzalez/cervello.git"
@@ -22,8 +22,7 @@
     "zustand",
     "reactive",
     "observable",
-    "global",
-    "local"
+    "performance"
   ],
   "sideEffects": false,
   "exports": {
