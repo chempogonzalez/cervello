@@ -11,6 +11,11 @@ import TabItem from '@theme/TabItem';
 The `cervello` function allows you to create a new store in an easy way.
 Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
 
+## Options _(optional)_
+| Name                    | Type         |Default    |Description         |
+|---                      |---           |---        |---	                |
+| `reactiveNestedObjects` | `boolean`    | true      |  By default, nested objects are proxied to allow reactivity on changes. Set to **false** if you want reactivity just on 1st-level object properties |
+
 
 ## Example
 
@@ -20,6 +25,7 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     // store-example.ts
 
     import { cervello } from '@cervello/react'
+
 
     export const {
       store,       // Reactive store object
@@ -34,7 +40,8 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     * (i.e.: initialize the store from a persisted data)
     */
     const { store } = cervello(() => {
-      return { count: 0 }
+      const count = getInitialCounter()
+      return { count }
     })
     
 
@@ -62,8 +69,52 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     * (i.e.: initialize the store from a persisted data)
     */
     const { store } = cervello<Store>(() => {
-      return { count: 0 }
+      const count = getInitialCounter()
+      return { count }
     })
+
+  </TabItem>
+</Tabs>
+
+
+
+## Example with options
+
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    // store-example.ts
+
+    import { cervello } from '@cervello/react'
+
+
+    const options = {
+      reactiveNestedObjects: false
+    }
+
+    export const { store } = cervello({
+        /** initial store */
+      },
+      options
+    )
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    // store-example.ts
+
+    import { cervello } from '@cervello/react'
+    import type { CervelloOptions } from '@cervello/react'
+
+    const options: CervelloOptions = {
+      reactiveNestedObjects: false
+    }
+
+    export const { store } = cervello({
+        /** initial store */
+      },
+      options
+    )
 
   </TabItem>
 </Tabs>
