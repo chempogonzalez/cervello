@@ -14,7 +14,7 @@
     "dev": "pnpm run --recursive --parallel dev",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint-fix": "npm run lint -- --fix",
-    "test": "pnpm --filter=@cervello/react run test",
+    "test": "pnpm --filter=@cervello/react run test:release",
     "release": "pnpm test && bumpp package.json packages/cervello/package.json --commit=\"chore(packages/cervello): release \" && pnpm --filter=@cervello/react publish --access public"
   },
   "devDependencies": {
