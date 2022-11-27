@@ -12,6 +12,8 @@
 
 
 <br>
+<br>
+
 
 <a href="https://www.cervello.dev">
   <p align="center">
@@ -63,7 +65,7 @@ export const {
 
 
 ---------
-## To see more in depth explanations 📖 [Documentation website](https://www.cervello.dev)
+### To see more in depth explanations 📖 [Documentation website](https://www.cervello.dev)
 --------
 
 <br>
