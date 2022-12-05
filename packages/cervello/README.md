@@ -26,7 +26,7 @@
 
 
 ## 🚀 **Features**
-- ⚛️ Truly reactive on store change **_(nested properties too!!)_**
+- ⚛️ Truly reactive on store change like normal objects without functions **_(nested properties too!!)_**
 - ✅ Super simple and minimalistic API
 - 🐨 Listen properties lazily
 - 👌 No unnecessary re-renders
