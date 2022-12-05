@@ -1,7 +1,7 @@
 # Cervello
 
 [![npm version](https://img.shields.io/npm/v/@cervello/react?color=blue&style=flat-square)](https://www.npmjs.com/package/@cervello/react)
-[![dfs](https://img.shields.io/bundlephobia/minzip/@cervello/react/latest?color=orange&style=flat-square)](https://bundlephobia.com/package/@cervello/react@latest)
+[![bundle-size](https://img.shields.io/bundlephobia/minzip/@cervello/react/latest?color=orange&style=flat-square)](https://bundlephobia.com/package/@cervello/react@latest)
 
 
 <a href="https://www.cervello.dev">
@@ -60,6 +60,29 @@ export const {
   useSelector, // Hook to listen for changes on parts of the store
   reset,       // Function to reset the store to initial value
 } = cervello({ count: 0 })
+
+
+// With the store object you can use it outside of React components
+const increment = () => store.count++
+
+
+const Button = () => {
+  const { count } = useStore() // Listen for changes on the whole store
+  return (
+    <button onClick={increment}>
+      {count}
+    </button>
+  )
+}
+
+const ButtonWithSelector = () => {
+  const { count } = useSelector(['count']) // Listen for changes just on count property
+  return (
+    <button onClick={increment}>
+      {count}
+    </button>
+  )
+}
 ```
 <br>
 <br>
