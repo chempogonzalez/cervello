@@ -71,6 +71,7 @@
     "microbundle": "0.15.1",
     "react": "18.2.0",
     "typescript": "4.8.2",
+    "vite": "^3.0.9",
     "vitest": "^0.23.1",
     "vitest-react": "^0.9.5"
   }

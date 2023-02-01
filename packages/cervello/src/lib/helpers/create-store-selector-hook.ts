@@ -10,7 +10,7 @@ import type { CacheableSubject } from '../utils/subject'
 
 
 
-const isServerSymbol = Symbol('_isServer')
+const isServerSymbol = Symbol.for('_isServer')
 
 
 export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxiedStore: any, type: 'full' | 'slice'): UseSelector<T> {

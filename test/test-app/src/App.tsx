@@ -36,6 +36,7 @@ const { store, useSelector, useStore, reset } = cervello({
       test: 1,
     },
   },
+  newTest: undefined,
   addLink (key: 'test', value: number): void {
     type LinkKeys = keyof typeof this.links['nested']
 
@@ -48,42 +49,19 @@ const { store, useSelector, useStore, reset } = cervello({
   .use(middlewares, log)
 
 
-
-
+const uuuu = {
+  testAttr: {
+    nestedTestAttr: 'nested',
+  },
+}
 
 function App (): JSX.Element {
   useLogRenders('App')
   // const [t, setT] = useState(Math.random())
 
-  const iRef = useRef<any>(null)
-
   const i = useStore()
 
-  console.log('~~~~~~~~~~~~~~ . ', { 'isSame????': iRef.current === i, i, 'LINKS': JSON.stringify(i.links) })
-  iRef.current = i
-  // const x = useSelector(['surname'])
-  // console.log('************ own ', Object.hasOwn(x, 'name'))
-
-  // console.log('..............', i.$value)
-  // // const store = useStore()
-  // useEffect(() => {
-  //   console.log('changing reference!')
-  //   setT(Math.random())
-  //   // store.name = `${Math.random()}`
-  // }, [x])
-
-
-  useEffect(() => {
-    console.log('Changing links', { links: JSON.stringify(i.links) })
-  }, [i.links])
-
-  const handleOnClick = () => {
-    i.addLink('test', { fdf: 1 })
-    // i.addSecondSurname('Franco!')
-    // i.links = { t: `${Math.random()}` }
-    // store.$value = { jeje: 1 } as any
-    // store.languages = [...store.languages, ({ test: Math.random() })] as any
-  }
+  console.log('i', i)
 
   return (
     <div className='App'>
@@ -92,18 +70,29 @@ function App (): JSX.Element {
       <h3>t: {JSON.stringify(i.surname, null, 2)}</h3>
 
       <pre>{JSON.stringify(i, null, 2)}</pre>
-      <pre>
+      {/* <pre>
         LINKS::
 
 
         {JSON.stringify(i.links, null, 2)}
-        </pre>
+        </pre> */}
 
       <hr />
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
       <div className="btn-wrapper">
-        <button onClick={handleOnClick}>Change</button>
+        {/* <button onClick={handleOnClick}>Change</button> */}
+        <button onClick={() => {
+          i.newTest = uuuu
+        }}>Change newTest</button>
+        <button onClick={() => {
+          i.newTest.testAttr.nestedTestAttr = 'NEW VALUE'
+        }}>Change nestedTestAttr!</button>
+
+        <button onClick={() => {
+          store.links = ['test.com', 'test2.com']
+        }}>Change nestedTestAttr!</button>
+
         <button onClick={() => reset()}>Reset</button>
       </div>
 

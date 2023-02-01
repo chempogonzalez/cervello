@@ -1,7 +1,14 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-dynamic-delete */
 import { deepClone, isObject, okTarget } from '../utils'
 import { INTERNAL_VALUE_PROP } from './constants'
 
 import type { CacheableSubject } from '../utils/subject'
+
+
+
+const nestedPath = Symbol.for('nestedPath')
+
 
 
 
@@ -26,19 +33,24 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
        */
       if (prop === 'toJSON') return () => target
 
-      const propertyValue = Reflect.get(target, prop)
+      const propertyValue = target[prop]
 
-      if (shouldProxifyNestedObj && isObject(propertyValue)) {
+      if (shouldProxifyNestedObj && isObject(propertyValue) && typeof prop !== 'symbol') {
+        const isRootTarget = Object.hasOwn(t, INTERNAL_VALUE_PROP)
+        const propNestedPath = isRootTarget ? prop : `${target[nestedPath]}.${prop}`
+
         /**  Check if cached to return instead of re-create new proxy */
-        const cachedValue = proxiedNestedObjectMap[prop]
+        const cachedValue = proxiedNestedObjectMap[propNestedPath]
         if (cachedValue) return cachedValue
 
+        /**  Set the nestedPath symbol to keep track of proxied */
+        propertyValue[nestedPath] = propNestedPath
+
         const proxied = proxifyStore(store$$ as any, propertyValue, proxiedNestedObjectMap, shouldProxifyNestedObj)
-        // const proxied = proxifyStore(store$$ as any, { $$value$$: propertyValue }, proxiedNestedObjectMap, shouldProxifyNestedObj)
 
 
         /**  Store in cache the proxiedObject */
-        proxiedNestedObjectMap[prop] = proxied
+        proxiedNestedObjectMap[propNestedPath] = proxied
 
         return proxied
       }
@@ -49,37 +61,51 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
 
 
-    set (t, prop, value) {
+    set (t, prop, newValue) {
       const isRootTarget = Object.hasOwn(t, INTERNAL_VALUE_PROP)
 
       /** Reset store */
       if (prop === '$value' && isRootTarget) {
-        const newValue = deepClone(value)
+        const newClonedValue = deepClone(newValue)
         proxiedNestedObjectMap = {}
-        Reflect.set(t, INTERNAL_VALUE_PROP, newValue)
-        store$$.next(newValue)
+        Reflect.set(t, INTERNAL_VALUE_PROP, newClonedValue)
+        store$$.next(newClonedValue)
         return true
       }
 
+
       const target = okTarget(t)
-      const propValue = Reflect.get(target, prop)
+      const propValue = target[prop]
 
       /**  If new value is the same as the current one */
-      if (propValue === value) return true
-
-
-      /**  Set value to target reference */
-      Reflect.set(target, prop, value)
+      if (propValue === newValue) return true
 
       /**
        * Override nested proxied object in
        * cache proxying the new value passed in
-       */
-      if (shouldProxifyNestedObj && isObject(propValue) && proxiedNestedObjectMap[prop]) {
+      */
+      if (shouldProxifyNestedObj && isObject(newValue) && typeof prop !== 'symbol') {
         // TODO: check if --- proxiedNestedObjectMap[prop].$value = value --- is possible instead of recreating new nested
         // proxiedNestedObjectMap[prop].$value = value
-        const proxied = proxifyStore(store$$ as any, value, proxiedNestedObjectMap, shouldProxifyNestedObj)
-        proxiedNestedObjectMap[prop] = proxied
+
+        const propNestedPath = isRootTarget ? prop : `${target[nestedPath]}.${prop}`
+        const newClonedValue = deepClone(newValue)
+
+        newClonedValue[nestedPath] = propNestedPath
+
+        const proxied = proxifyStore(store$$ as any, newClonedValue, proxiedNestedObjectMap, shouldProxifyNestedObj)
+
+        // Remove nested object props from cache
+        // nestedPath: 'a.b.c': remove -> 'a.b.c.d' -> 'a.b.c.d.e'
+        Object.keys(proxiedNestedObjectMap).forEach((cachedProxyKey: string) => {
+          if (cachedProxyKey.startsWith(propNestedPath)) delete proxiedNestedObjectMap[cachedProxyKey]
+        })
+
+        proxiedNestedObjectMap[propNestedPath] = proxied
+
+        target[prop] = newClonedValue
+      } else {
+        target[prop] = newValue
       }
 
       /** Push new store object (new reference for immutability) */
