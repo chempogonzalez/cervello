@@ -36,7 +36,7 @@ const { store, useSelector, useStore, reset } = cervello({
       test: 1,
     },
   },
-  newTest: undefined,
+  newTest: null,
   addLink (key: 'test', value: number): void {
     type LinkKeys = keyof typeof this.links['nested']
 
@@ -53,23 +53,55 @@ const uuuu = {
   testAttr: {
     nestedTestAttr: 'nested',
   },
+
 }
 
 function App (): JSX.Element {
   useLogRenders('App')
   // const [t, setT] = useState(Math.random())
 
-  const i = useStore()
+  const sel = useSelector(['newTest'])
 
-  console.log('i', i)
+  // const sel = useStore()
+
+  // const st = useStore()
+
+  console.log('selector >>>> ', sel.newTest)
+  // console.log('store >>>> ', st.newTest)
+
+
+  // useEffect(() => {
+  //   console.log('useEffect');
+  //   (store.newTest as any) = {
+  //     test: [
+  //       {
+  //         test: 'test',
+  //         rooms: [
+  //           {
+  //             name: 'room1',
+  //             test: 'test',
+  //             rates: [
+  //               {
+  //                 name: 'rate1',
+  //                 price: 2222200,
+  //               },
+  //             ],
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   }
+  // }, [])
 
   return (
     <div className='App'>
       <h1>Cervello examples</h1>
 
-      <h3>t: {JSON.stringify(i.surname, null, 2)}</h3>
+      {/* <h3>t: {JSON.stringify(i.surname, null, 2)}</h3> */}
 
-      <pre>{JSON.stringify(i, null, 2)}</pre>
+      <pre>{JSON.stringify(sel.newTest, null, 2)}</pre>
+      <hr />
+      <pre>{JSON.stringify(sel, null, 2)}</pre>
       {/* <pre>
         LINKS::
 
@@ -83,10 +115,46 @@ function App (): JSX.Element {
       <div className="btn-wrapper">
         {/* <button onClick={handleOnClick}>Change</button> */}
         <button onClick={() => {
-          i.newTest = uuuu
+          (store.newTest as any) = {
+            test: [
+              {
+                test: 'test',
+                rooms: [
+                  {
+                    name: 'room1',
+                    test: 'test',
+                    rates: [
+                      {
+                        name: 'rate1',
+                        price: 100,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }
         }}>Change newTest</button>
         <button onClick={() => {
-          i.newTest.testAttr.nestedTestAttr = 'NEW VALUE'
+          (store.newTest as any) = {
+            test: [
+              {
+                test: 'test',
+                rooms: [
+                  {
+                    name: 'room1',
+                    test: 'test',
+                    rates: [
+                      {
+                        name: 'rate1',
+                        price: 2222200,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }
         }}>Change nestedTestAttr!</button>
 
         <button onClick={() => {

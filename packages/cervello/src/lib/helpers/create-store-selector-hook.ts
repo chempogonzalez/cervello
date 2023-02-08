@@ -30,7 +30,7 @@ export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxie
           next: (v) => {
             if (type === 'full') return onStoreChange()
 
-            const currentSlice = getPartialObjectFromProperties(selectors, v)
+            const currentSlice = getPartialObjectFromProperties(selectors, (v as any)?.[INTERNAL_VALUE_PROP])
 
             const compareWithPreviousStore = (isEqualFunction ?? contentComparer as any)
 

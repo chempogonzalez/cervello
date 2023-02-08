@@ -69,7 +69,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         const newClonedValue = deepClone(newValue)
         proxiedNestedObjectMap = {}
         Reflect.set(t, INTERNAL_VALUE_PROP, newClonedValue)
-        store$$.next(newClonedValue)
+        store$$.next({ [INTERNAL_VALUE_PROP]: newClonedValue } as unknown as T)
         return true
       }
 
