@@ -45,7 +45,7 @@ const { store, useSelector, useStore, reset } = cervello({
   addSecondSurname (surname: string): void {
     this.surname = `${this.surname} ${surname}`
   },
-}, { reactiveNestedObjects: true })
+})
   .use(middlewares, log)
 
 
@@ -56,60 +56,56 @@ const uuuu = {
 
 }
 
+
+function StoreHookComponent (): JSX.Element {
+  useLogRenders('StoreHookComponent')
+  const store = useStore()
+
+  return (
+    <div>
+      <h2>Store hook</h2>
+      <pre>{JSON.stringify(store, null, 2)}</pre>
+    </div>
+  )
+}
+
+
+function SelectorHookComponent (): JSX.Element {
+  useLogRenders('Selector__HookComponent')
+  const { newTest } = useSelector(['newTest'])
+
+  return (
+    <div>
+      <h2>Selector hook - newTest</h2>
+      <pre>{JSON.stringify(newTest, null, 2)}</pre>
+    </div>
+  )
+}
+
+
+
 function App (): JSX.Element {
   useLogRenders('App')
-  // const [t, setT] = useState(Math.random())
-
-  const sel = useSelector(['newTest'])
-
-  // const sel = useStore()
-
-  // const st = useStore()
-
-  console.log('selector >>>> ', sel.newTest)
-  // console.log('store >>>> ', st.newTest)
-
-
-  // useEffect(() => {
-  //   console.log('useEffect');
-  //   (store.newTest as any) = {
-  //     test: [
-  //       {
-  //         test: 'test',
-  //         rooms: [
-  //           {
-  //             name: 'room1',
-  //             test: 'test',
-  //             rates: [
-  //               {
-  //                 name: 'rate1',
-  //                 price: 2222200,
-  //               },
-  //             ],
-  //           },
-  //         ],
-  //       },
-  //     ],
-  //   }
-  // }, [])
 
   return (
     <div className='App'>
       <h1>Cervello examples</h1>
 
-      {/* <h3>t: {JSON.stringify(i.surname, null, 2)}</h3> */}
+      <section style={{ display: 'flex', flexDirection: 'row', marginTop: '130px' }}>
+        <StoreHookComponent />
 
-      <pre>{JSON.stringify(sel.newTest, null, 2)}</pre>
-      <hr />
-      <pre>{JSON.stringify(sel, null, 2)}</pre>
-      {/* <pre>
-        LINKS::
+        <br />
+
+        <hr />
+        <hr />
+
+        <br />
+
+        <SelectorHookComponent />
+        <br />
+      </section>
 
 
-        {JSON.stringify(i.links, null, 2)}
-        </pre> */}
-
-      <hr />
       {/* <pre>{JSON.stringify(s, null, 2)}</pre> */}
 
       <div className="btn-wrapper">
@@ -158,8 +154,13 @@ function App (): JSX.Element {
         }}>Change nestedTestAttr!</button>
 
         <button onClick={() => {
-          store.links = ['test.com', 'test2.com']
+          (store.links as any) = ['test.com', 'test2.com']
         }}>Change nestedTestAttr!</button>
+
+
+        <button onClick={() => {
+          (store.newTest as any).tiiiii = ['__test', '__test2']
+        }}>Change newTest nested .test prop!!</button>
 
         <button onClick={() => reset()}>Reset</button>
       </div>
