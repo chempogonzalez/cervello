@@ -2,7 +2,7 @@
 import { useRef } from 'react'
 import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js'
 
-import { contentComparer, getPartialObjectFromProperties } from '../utils'
+import { contentComparer, deepClone, getPartialObjectFromProperties } from '../utils'
 import { INTERNAL_VALUE_PROP } from './constants'
 
 import type { ObjectFromAttributes, UseSelector, WithoutType } from '../../types/shared'
@@ -22,7 +22,13 @@ export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxie
     selectors: Attributes,
     isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
   ): T => {
-    const prevSlice = useRef< ObjectFromAttributes<T, Attributes> | null >(null)
+    const prevSlice = useRef< ObjectFromAttributes<T, Attributes> | null >(
+      type === 'full'
+        ? null
+        // To avoid the first render to be always different even
+        // if store changed other than selected attributes
+        : getPartialObjectFromProperties(selectors, (store$$.getValue() as any)?.[INTERNAL_VALUE_PROP]),
+    )
 
     const store = useSyncExternalStore(
       (onStoreChange) => {
@@ -36,7 +42,7 @@ export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxie
 
             const isEquals = compareWithPreviousStore(prevSlice.current, currentSlice)
             if (!isEquals) {
-              prevSlice.current = currentSlice
+              prevSlice.current = deepClone(currentSlice)
               onStoreChange()
             }
           },
