@@ -22,6 +22,7 @@ import {
   useSelector,
   useStore,
 } from './utils'
+import { cervello } from '../lib/store'
 
 
 
@@ -62,6 +63,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const button = screen.getByText('Change')
+
     await act(async () => {
       await userEvent.click(button)
     })
@@ -82,6 +84,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const renderedResultObj = renderedResultToObject(content)
+
     expect(renderedResultObj.name).toEqual('chempo!')
   })
 
@@ -94,6 +97,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const button = screen.getByText('Change')
+
     await act(async () => {
       await userEvent.click(button)
     })
@@ -102,6 +106,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const renderedResultObj = renderedResultToObject(content)
+
     expect(renderedResultObj.languages).toEqual([...INITIAL_VALUE.languages, 'brazilian'])
 
     await act(async () => {
@@ -122,11 +127,13 @@ describe('[_CERVELLO_]', () => {
 
 
     const button = screen.getByText('Change')
+
     await act(async () => {
       await userEvent.click(button)
     })
 
     const renderedResultObj = renderedResultToObject(content)
+
     console.log({ ddddd: store.getDisplayName() })
 
     expect(store.getDisplayName()).toEqual('Gonzalez !')
@@ -153,6 +160,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const button = screen.getByText('Change')
+
     await act(async () => {
       await userEvent.click(button)
     })
@@ -186,6 +194,7 @@ describe('[_CERVELLO_]', () => {
 
 
     const button = screen.getByText('Change')
+
     await act(async () => {
       await userEvent.click(button)
     })
@@ -200,5 +209,23 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(2)
       expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE))
     })
+  })
+
+  it('Set store name', async () => {
+    const { testStore, useTestSelector, useTestStore, resetTestStore } = cervello({ id: 1234 }, { name: 'test' })
+
+    expect(testStore.id).toEqual(1234)
+    testStore.id = 4321
+
+    expect(testStore.id).toEqual(4321)
+
+    expect(useTestSelector).toBeTruthy()
+    expect(useTestSelector).toBeTypeOf('function')
+
+    expect(useTestStore).toBeTypeOf('function')
+    expect(useTestStore).toBeTruthy()
+
+    expect(resetTestStore).toBeTypeOf('function')
+    expect(resetTestStore).toBeTruthy()
   })
 })

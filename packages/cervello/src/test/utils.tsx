@@ -6,6 +6,7 @@ import { cervello } from '../index'
 
 export const useLogRenders = (component: string): [JSX.Element | null, number] => {
   const renders = useRef(-1)
+
   renders.current = renders.current + 1
 
   const renderMountedString = renders.current === 0 ? 'First render' : `re-render: ${renders.current}`
@@ -14,11 +15,12 @@ export const useLogRenders = (component: string): [JSX.Element | null, number] =
 
   return [
     (
-    <p
-      key={renderMountedString}
-      data-testid='renders'>
+      <p
+        key={renderMountedString}
+        data-testid='renders'
+      >
         {renderMountedString}
-    </p>
+      </p>
     ),
     renders.current,
   ]
@@ -30,11 +32,13 @@ export const useLogRenders = (component: string): [JSX.Element | null, number] =
 
 export const renderedResultToString = (content) => {
   const contentText = content.textContent
+
   return JSON.stringify(JSON.parse(contentText as string))
 }
 
 export const renderedResultToObject = (content) => {
   const contentText = content.textContent
+
   return JSON.parse(contentText as string)
 }
 
@@ -56,6 +60,7 @@ export const INITIAL_VALUE = {
   },
   getDisplayName () {
     console.log('-------------------------------', this)
+
     return `${this.surname} ${this.surname2}`
   },
   addLink (key: 'test', value: number): void {
@@ -79,6 +84,7 @@ export function App (): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
   const s = useStore()
+
   return (
     <div className='App'>
       {numOfRenders}
