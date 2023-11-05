@@ -1,11 +1,13 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
+
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
-import { deepClone, isObject, okTarget } from '../utils'
 import { INTERNAL_VALUE_PROP } from './constants'
+import { deepClone, isObject, okTarget } from '../utils'
 
 import type { CacheableSubject } from '../utils/subject'
 
 
+// @ts-expect-error - Object.hasOwn is not defined in older Safari's browsers
+('hasOwn' in Object) || (Object.hasOwn = Object.call.bind(Object.hasOwnProperty))
 
 const nestedPath = Symbol.for('nestedPath')
 
@@ -41,6 +43,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
         /**  Check if cached to return instead of re-create new proxy */
         const cachedValue = proxiedNestedObjectMap[propNestedPath]
+
         if (cachedValue) return cachedValue
 
         /**  Set the nestedPath symbol to keep track of proxied */
@@ -67,9 +70,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       /** Reset store */
       if (prop === '$value' && isRootTarget) {
         const newClonedValue = deepClone(newValue)
+
         proxiedNestedObjectMap = {}
         Reflect.set(t, INTERNAL_VALUE_PROP, newClonedValue)
         store$$.next({ [INTERNAL_VALUE_PROP]: newClonedValue } as unknown as T)
+
         return true
       }
 

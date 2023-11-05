@@ -2,11 +2,11 @@
 export type Noop = () => void
 
 
-export interface Observer<T> {
+export type Observer<T> = {
   next: (value: T) => void
 }
 
-export interface Subscription {
+export type Subscription = {
   unsubscribe: Noop
 }
 
@@ -34,6 +34,7 @@ export function createCacheableSubject<T> (defaultValue: T, getValueOnSubscribe 
     if (getValueOnSubscribe) observer.next(value)
     // Store the observer to be notified
     observerList.push(observer)
+
     return {
       unsubscribe: () => {
         observerList = observerList.filter(o => o !== observer)

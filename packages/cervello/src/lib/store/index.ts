@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/ban-types */
 import { createStoreSelectorHook, proxifyStore } from '../helpers'
 import { INTERNAL_VALUE_PROP } from '../helpers/constants'
@@ -7,13 +8,15 @@ import {
   getPartialObjectFromProperties,
   createCacheableSubject,
   okTarget,
+  capitalize,
+  isCamelCase,
 } from '../utils'
 
 import type { Maybe, UseSelector, WithoutType } from '../../types/shared'
 
 
 
-interface CervelloStoreUseParam<StoreType> {
+type CervelloStoreUseParam<StoreType> = {
   onChange: (cb: (store: StoreType) => void) => void
   onPartialChange: <
     Attributes extends keyof WithoutType<StoreType, Function>,
@@ -27,49 +30,92 @@ interface CervelloStoreUseParam<StoreType> {
  */
 export type CervelloUseFunction<StoreType> = (param: CervelloStoreUseParam<StoreType>) => void
 
-
-interface CervelloStore<StoreType> {
-  /** Reactive store */
-  store: StoreType
-  /** Hook to react to all changes done to 'store' */
-  useStore: () => StoreType
-  /** Hook to react to changes done to 'store' in all the attributes provided */
-  useSelector: UseSelector<StoreType>
-  /** Resets the value to the initial value passed in */
-  reset: () => void
-  /** Functions to be attached to changes in a general way (tracking, loggers, ... etc) */
-  use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType>
+declare type Prettify<T> = {} & {
+  [K in keyof T]: T[K];
 }
 
 
-export interface CervelloOptions {
-  reactiveNestedObjects: boolean
+
+
+type CervelloStore<StoreType, StoreName extends string | undefined = undefined> =
+  StoreName extends string
+    ? Prettify<{
+      //   /** Reactive store */
+      [K in `${StoreName}Store`]: StoreType
+    }
+    & {
+      /** Hook to react to all changes done to 'store' */
+      [K in `use${Capitalize<StoreName>}Store`]: () => StoreType
+    }
+    & {
+      /** Hook to react to all changes done to 'store' */
+      [K in `use${Capitalize<StoreName>}Selector`]: UseSelector<StoreType>
+    }
+    & {
+      /** Resets the value to the initial value passed in */
+      [K in `reset${Capitalize<StoreName>}Store`]: () => void
+    }
+    & {
+      /** Functions to be attached to changes in a general way (tracking, loggers, ... etc) */
+      use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType, StoreName>
+    }>
+    :
+      {
+        /** Reactive store */
+        store: StoreType
+        /** Hook to react to all changes done to 'store' */
+        useStore: () => StoreType
+        /** Hook to react to changes done to 'store' in all the attributes provided */
+        useSelector: UseSelector<StoreType>
+        /** Resets the value to the initial value passed in */
+        reset: () => void
+        /** Functions to be attached to changes in a general way (tracking, loggers, ... etc) */
+        use: (...functions: Array<(useObj: CervelloStoreUseParam<StoreType>) => void>) => CervelloStore<StoreType, StoreName>
+      }
+
+
+export type CervelloOptions<StoreName extends string | undefined = undefined> = {
+  name?: StoreName
+  reactiveNestedObjects?: boolean
 }
-
-
-/**
- * Creates a store that is reactive and can be used inside and outside of React components.
- * @param initialValue - Object with the default values for the store
- *
- * @returns - \{ store, useStore, useSelector \}
- */
-export function cervello <T> (initialValue: T, options?: CervelloOptions): CervelloStore<T & { $value: Maybe<T> }>
 
 
 /**
  * Creates a store that is reactive and can be used inside and outside of React components.
  * @param initialValue - Function which returns the default values for the store
  *
- * @returns  \{ store, useStore, useSelector \}
+ * @returns  \{ store, useStore, useSelector \} or `{ exampleStore, useExampleStore, useExampleSelector }` if name is provided in options with 'example' value
  */
-export function cervello <T> (initialValue: () => T, options?: CervelloOptions): CervelloStore<T & { $value: Maybe<T> }>
+export function cervello <
+T,
+StoreName extends string | undefined = undefined,
+> (initialValue: () => T, options?: CervelloOptions<StoreName>): Prettify< CervelloStore<Prettify<T & { $value: Maybe<T> }>, StoreName> >
+
+
+/**
+ * Creates a store that is reactive and can be used inside and outside of React components.
+ * @param initialValue - Object with the default values for the store
+ *
+ * @returns - \{ store, useStore, useSelector \}  or `{ exampleStore, useExampleStore, useExampleSelector }` if name is provided in options with 'example' value
+ */
+export function cervello <
+T extends Record<string, unknown>,
+StoreName extends string | undefined = undefined,
+> (initialValue: T, options?: CervelloOptions<StoreName>): Prettify< CervelloStore<Prettify<T & { $value: Maybe<T> }>, StoreName> >
+
 
 
 /** @internal */
-export function cervello <T> (
+export function cervello <T, StoreName extends string | undefined = undefined> (
   initialValue: T | (() => T),
-  options: CervelloOptions = { reactiveNestedObjects: true },
-): CervelloStore<T & { $value: Maybe<T> }> {
+  options: CervelloOptions<StoreName> = { reactiveNestedObjects: true },
+): CervelloStore<T & { $value: Maybe<T> }, StoreName> {
+  const { name: optionsName, reactiveNestedObjects = true } = options
+
+  if (optionsName && !isCamelCase(optionsName))
+    throw new Error(`[cervello]: options.name must be in camelCase and "${optionsName}" doesn't respect this rule.`)
+
+
   const defaultValue: T = typeof initialValue === 'function' ? (initialValue as any)() : initialValue
 
 
@@ -82,17 +128,31 @@ export function cervello <T> (
   const proxiedNestedObjectMap: any = {}
 
   const store$$ = createCacheableSubject(clonedInitialValue, false) as any
-  const proxiedStore = proxifyStore<T>(store$$, clonedInitialValue, proxiedNestedObjectMap, options.reactiveNestedObjects)
+  const proxiedStore = proxifyStore<T>(store$$, clonedInitialValue, proxiedNestedObjectMap, reactiveNestedObjects)
 
   const cervelloStore = {
-    store: proxiedStore,
-    reset () {
+    [optionsName
+      ? `${optionsName}Store`
+      : 'store'
+    ]: proxiedStore,
+
+    [optionsName
+      ? `reset${capitalize(optionsName)}Store`
+      : 'reset'
+    ] () {
       (proxiedStore as any).$value = defaultValue
     },
 
     // TO BE SEPARATED IN cervello/react package --------------------------------
-    useStore: createStoreSelectorHook<T>(store$$, proxiedStore, 'full'),
-    useSelector: createStoreSelectorHook<T>(store$$, proxiedStore, 'slice'),
+    [optionsName
+      ? `use${capitalize(optionsName)}Store`
+      : 'useStore'
+    ]: createStoreSelectorHook<T>(store$$, proxiedStore, 'full'),
+
+    [optionsName
+      ? `use${capitalize(optionsName)}Selector`
+      : 'useSelector'
+    ]: createStoreSelectorHook<T>(store$$, proxiedStore, 'slice'),
     // --------------------------------------------------------------------------
 
     use (...functionList: any) {
@@ -103,12 +163,14 @@ export function cervello <T> (
           },
           onPartialChange (attrs: Array<keyof T>, cb: any) {
             let prevSlice: any = getPartialObjectFromProperties(attrs, okTarget(clonedInitialValue))
+
             store$$.subscribe({
               next: (v: T) => {
                 const target = okTarget(v)
                 const currentSlice = getPartialObjectFromProperties(attrs, target)
 
                 const isEquals = contentComparer(prevSlice, currentSlice)
+
                 if (!isEquals) {
                   cb(proxiedStore)
                   prevSlice = deepClone(currentSlice)
@@ -118,11 +180,12 @@ export function cervello <T> (
           },
         })
       })
+
       return this
     },
   } as any
 
 
 
-  return cervelloStore as CervelloStore<T & { $value: Maybe<T> }>
+  return cervelloStore
 }

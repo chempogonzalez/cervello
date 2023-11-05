@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { useRef } from 'react'
-import { useSyncExternalStore } from 'use-sync-external-store/shim/index.js'
+import { useRef, useSyncExternalStore } from 'react'
 
-import { contentComparer, deepClone, getPartialObjectFromProperties } from '../utils'
 import { INTERNAL_VALUE_PROP } from './constants'
+import { contentComparer, deepClone, getPartialObjectFromProperties } from '../utils'
 
 import type { ObjectFromAttributes, UseSelector, WithoutType } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
@@ -34,17 +33,29 @@ export function createStoreSelectorHook<T> (store$$: CacheableSubject<T>, proxie
       (onStoreChange) => {
         const subscription = store$$.subscribe({
           next: (v) => {
-            if (type === 'full') return onStoreChange()
+            if (type === 'full') {
+              onStoreChange()
 
+              return
+            }
+
+            // Partial store section ------------------------------------------------------------------
             const currentSlice = getPartialObjectFromProperties(selectors, (v as any)?.[INTERNAL_VALUE_PROP])
 
             const compareWithPreviousStore = (isEqualFunction ?? contentComparer as any)
 
             const isEquals = compareWithPreviousStore(prevSlice.current, currentSlice)
+
             if (!isEquals) {
+              /**
+               * Update previous slice with deepClone to avoid storing direct store$$ value reference.
+               * This solve reference/value problems when changing the store object
+               * (proxy.set is changing the target object which is 'v' here)
+               */
               prevSlice.current = deepClone(currentSlice)
               onStoreChange()
             }
+            // ----------------------------------------------------------------------------------------
           },
         })
 
