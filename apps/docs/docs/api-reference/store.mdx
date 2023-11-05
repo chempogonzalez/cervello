@@ -15,10 +15,10 @@ const { store } = cervello({ example: true })
 
 ## Description
 Cervello returns an object with `store` attribute.
-It's a reactive object that you can use `inside or outside react components` to modify the store.
-It will automatically notify all the components listening for changes
+It's a reactive object that you can use `inside or outside react components` to get or modify the store.
+It will automatically notify all the components subscribed to the store when a change is made.
 
-
+_If you have set a [name for the store](/docs/introduction/usage#example-with-options), the returned object property will be `{name}Store`_
 
 ## Example
 <Tabs groupId="code-language">
@@ -28,7 +28,7 @@ It will automatically notify all the components listening for changes
 
     /**
      * It can be used outside the react components
-     * It will notify all the components listening for changes 
+     * It will notify all the components subscribed to the store when a change is made
      */
     const increment = () => { store.count++ }
 
@@ -45,7 +45,7 @@ It will automatically notify all the components listening for changes
 
     /**
      * It can be used outside the react components
-     * It will notify all the components listening for changes 
+     * It will notify all the components subscribed to the store when a change is made
      */
     const increment = () => { store.count++ }
 

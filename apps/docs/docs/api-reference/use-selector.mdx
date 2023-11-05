@@ -6,7 +6,7 @@ sidebar_position: 3
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# Get partial store properties from React component
+# Get store when specified properties change
 ## useSelector
 
 ```ts
@@ -14,7 +14,10 @@ const { useSelector } = cervello({ example: true })
 ```
 
 ## Description
-React hook that allows you to have a reactive store which re-renders when a new value was set on properties you specified
+React hook that allows you to have a reactive store which re-renders when a the specified properties change.
+
+_If you have set a [name for the store](/docs/introduction/usage#example-with-options), the returned object property will be `use{name}Selector`_
+
 
 ## Input parameters
 | Name              | Type                      |Default                                |Description        |
@@ -29,9 +32,9 @@ If you want to modify a property of the store, you need to use it without destru
 const { useSelector } = cervello({ isActive: true })
 
 const ExampleComponent = () => {
-  const partialStore = useSelector(['isActive'])
+  const store = useSelector(['isActive'])
   return (
-    <button onClick={() => partialStore.isActive = false}>
+    <button onClick={() => store.isActive = false}>
       Set Active to false
     </button>
   )

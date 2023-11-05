@@ -12,9 +12,11 @@ The `cervello` function allows you to create a new store in an easy way.
 Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
 
 ## Options _(optional)_
-| Name                    | Type         |Default    |Description         |
-|---                      |---           |---        |---	                |
-| `reactiveNestedObjects` | `boolean`    | true      |  By default, nested objects are proxied to allow reactivity on changes. Set to **false** if you want reactivity just on 1st-level object properties |
+| Name                    | Type                 |Default    |Description         |
+|---                      |---                   |---        |---	                |
+| `reactiveNestedObjects` | `boolean`            | true      |  By default, nested objects are proxied to allow reactivity on changes. Set to **false** if you want reactivity just on 1st-level object properties |
+| `name`<br /> _(from v2)_  | `string` (camelCase) | 'store'   |  Name of the store. It will be used to return the store object and the other hooks based on the name provided. `name must be provided in camelCase` |
+
 
 
 ## Example
@@ -89,10 +91,16 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
 
 
     const options = {
-      reactiveNestedObjects: false
+      reactiveNestedObjects: false,
+      name: 'redirectModal'
     }
 
-    export const { store } = cervello({
+    export const {
+      redirectModalStore,       // Reactive store object
+      useRedirectModalStore,    // Hook to use the store
+      useRedirectModalSelector, // Hook to use the selectors (part of the store)
+      resetRedirectModalStore,       // Function to reset the store
+    } = cervello({
         /** initial store */
       },
       options
@@ -107,10 +115,16 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     import type { CervelloOptions } from '@cervello/react'
 
     const options: CervelloOptions = {
-      reactiveNestedObjects: false
+      reactiveNestedObjects: false,
+      name: 'redirectModal'
     }
 
-    export const { store } = cervello({
+    export const {
+      redirectModalStore,       // Reactive store object
+      useRedirectModalStore,    // Hook to use the store
+      useRedirectModalSelector, // Hook to use the selectors (part of the store)
+      resetRedirectModalStore,       // Function to reset the store
+    } = cervello({
         /** initial store */
       },
       options
