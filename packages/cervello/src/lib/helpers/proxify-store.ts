@@ -37,7 +37,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
       const propertyValue = target[prop]
 
-      if (shouldProxifyNestedObj && isObject(propertyValue) && typeof prop !== 'symbol') {
+      if (shouldProxifyNestedObj && isObject(propertyValue) && typeof prop !== 'symbol' && !Object.hasOwn(propertyValue, '$$typeof')) {
         const isRootTarget = Object.hasOwn(t, INTERNAL_VALUE_PROP)
         const propNestedPath = isRootTarget ? prop : `${target[nestedPath]}.${prop}`
 
@@ -89,7 +89,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
        * Override nested proxied object in
        * cache proxying the new value passed in
       */
-      if (shouldProxifyNestedObj && isObject(newValue) && typeof prop !== 'symbol') {
+      if (shouldProxifyNestedObj && isObject(newValue) && typeof prop !== 'symbol' && !Object.hasOwn(newValue, '$$typeof')) {
         // TODO: check if --- proxiedNestedObjectMap[prop].$value = value --- is possible instead of recreating new nested
         // proxiedNestedObjectMap[prop].$value = value
 
