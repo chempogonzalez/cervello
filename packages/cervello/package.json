@@ -31,13 +31,12 @@
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "browser": "./dist/cervello.esm.js",
       "require": "./dist/cervello.cjs",
       "import": "./dist/cervello.esm.js",
-      "umd": "./dist/cervello.umd.js",
-      "default": "./dist/cervello.modern.js"
+      "default": "./dist/cervello.esm.js"
     },
     "./types": {
+      "types": "./types/index.d.ts",
       "browser": "./types/index.d.ts",
       "require": "./types/index.d.ts",
       "import": "./types/index.d.ts",
@@ -46,7 +45,6 @@
   },
   "main": "./dist/cervello.cjs",
   "module": "./dist/cervello.esm.js",
-  "unpkg": "./dist/cervello.umd.js",
   "source": "src/index.ts",
   "types": "./types/index.d.ts",
   "files": [

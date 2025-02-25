@@ -1,12 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@observable-lib": [
-        "packages/observable-lib/src/index.ts"
-      ]
-    }
+    "target": "ES2016",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
+    "baseUrl": "."
   },
   "include": [
     "src/**/*.ts"

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useRef, useState } from 'react'
+import React, {  } from 'react'
 import { describe, it, expect } from 'vitest'
 import {
   act,
@@ -18,11 +18,7 @@ import {
   renderedResultToString,
   reset,
   store,
-  useLogRenders,
-  useSelector,
-  useStore,
 } from './utils'
-import { cervello } from '../lib/store'
 
 
 
@@ -54,8 +50,50 @@ describe('[_CERVELLO_]', () => {
     expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE))
   })
 
+  it('First render with initial value from hook function', async () => {
+    act(() => {
+     render(<App options={{initialValue: () => ({custom: true}) as any}}/>)
+    })
+    const content = screen.getByTestId('content')
+
+
+    assertNumOfRenders(0)
+    expect(renderedResultToString(content)).toEqual(JSON.stringify({custom: true}))
+
+    // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
+    await new Promise(res => {
+      setTimeout(() => {
+        assertNumOfRenders(0)
+        res(null)
+      }, 100)
+    })
+  })
+
+  it('Change other value different from selected fields', async () => {
+    reset()
+    render(
+      <AppWithClick
+        options={{
+          select: ['surname'],
+        }}
+        onClick={(s) => { s.name = 'chempo!' }}
+      />
+    )
+
+    assertNumOfRenders(0)
+
+
+    const button = screen.getByText('Change')
+
+    await act(async () => {
+      await userEvent.click(button)
+    })
+
+    assertNumOfRenders(0)
+  })
 
   it('Change first level string attribute multiple times', async () => {
+    reset()
     render(<AppWithClick onClick={(s) => { s.name = 'chempo!' }} />)
     const content = screen.getByTestId('content')
 
@@ -134,7 +172,7 @@ describe('[_CERVELLO_]', () => {
 
     const renderedResultObj = renderedResultToObject(content)
 
-    console.log({ ddddd: store.getDisplayName() })
+    // console.log({ ddddd: store.getDisplayName() })
 
     expect(store.getDisplayName()).toEqual('Gonzalez !')
     await userEvent.click(button)
@@ -176,10 +214,13 @@ describe('[_CERVELLO_]', () => {
 
 
   it('Check object property (nested proxy) keeps the same object reference', async () => {
+    reset()
     render(<AppCheckReference />)
 
+    const content = screen.getByTestId('content')
     // Just 1 re-render due to change of the other state the first time is rendered
     assertNumOfRenders(1)
+    expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE.links))
   })
 
 
@@ -209,23 +250,5 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(2)
       expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE))
     })
-  })
-
-  it('Set store name', async () => {
-    const { testStore, useTestSelector, useTestStore, resetTestStore } = cervello({ id: 1234 }, { name: 'test' })
-
-    expect(testStore.id).toEqual(1234)
-    testStore.id = 4321
-
-    expect(testStore.id).toEqual(4321)
-
-    expect(useTestSelector).toBeTruthy()
-    expect(useTestSelector).toBeTypeOf('function')
-
-    expect(useTestStore).toBeTypeOf('function')
-    expect(useTestStore).toBeTruthy()
-
-    expect(resetTestStore).toBeTypeOf('function')
-    expect(resetTestStore).toBeTruthy()
   })
 })

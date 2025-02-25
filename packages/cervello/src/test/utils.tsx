@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { cervello } from '../index'
+import { cervello, CervelloUseStoreOptions } from '../index'
 
 
 
@@ -73,17 +73,13 @@ export const INITIAL_VALUE = {
   },
 }
 
+export const { store, useStore, reset } = cervello(INITIAL_VALUE)
 
 
-
-
-export const { store, useSelector, useStore, reset } = cervello(INITIAL_VALUE)
-
-
-export function App (): JSX.Element {
+export function App (props: {options?:CervelloUseStoreOptions<typeof INITIAL_VALUE>}): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
-  const s = useStore()
+  const s = useStore(props.options)
 
   return (
     <div className='App'>
@@ -94,10 +90,10 @@ export function App (): JSX.Element {
 }
 
 
-export function AppWithClick ({ onClick }: { onClick: (s: typeof store) => void }): JSX.Element {
+export function AppWithClick ({ onClick, options }: { options?:CervelloUseStoreOptions<typeof INITIAL_VALUE>, onClick: (s: typeof store) => void }): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
-  const s = useStore()
+  const s = useStore(options)
 
   const handleOnClick = (): void => {
     onClick(s)
@@ -118,7 +114,9 @@ export function AppCheckReference (): JSX.Element {
   const [numOfRenders, renders] = useLogRenders('App')
 
   // Select a possible nested property which is an object
-  const { links } = useSelector(['links'])
+  const { links } = useStore({
+    select: ['links.*'],
+  })
   const [anotherState, setAnotherState] = useState(0)
 
   useEffect(() => {
