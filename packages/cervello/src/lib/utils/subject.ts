@@ -37,7 +37,7 @@ export function createCacheableSubject<T> (defaultValue: T, getValueOnSubscribe 
       return
     }
 
-    itemsToFlush.push({ ...newValue })
+    itemsToFlush.push(newValue)
     // observerList.forEach((o) => { o.next(newValue) })
 
     if (!isFlushing) {

@@ -11,7 +11,7 @@ export const useLogRenders = (component: string): [JSX.Element | null, number] =
 
   const renderMountedString = renders.current === 0 ? 'First render' : `re-render: ${renders.current}`
 
-  console.log(`[${component}] - ${renderMountedString}`)
+  // console.log(`[${component}] - ${renderMountedString}`)
 
   return [
     (
@@ -59,8 +59,6 @@ export const INITIAL_VALUE = {
     },
   },
   getDisplayName () {
-    console.log('-------------------------------', this)
-
     return `${this.surname} ${this.surname2}`
   },
   addLink (key: 'test', value: number): void {

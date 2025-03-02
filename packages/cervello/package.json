@@ -1,7 +1,7 @@
 {
   "name": "@cervello/react",
   "type": "module",
-  "version": "2.0.3",
+  "version": "5.0.0-beta.1",
   "description": "🤯 Simplest and truly reactive state manager for React",
   "author": "Chempo",
   "license": "MIT",
@@ -53,6 +53,7 @@
   ],
   "scripts": {
     "release": "pnpx bumpp --push=false && npm publish --access public",
+    "publish:beta": "npm publish --tag beta",
     "test": "vitest --watch",
     "test:release": "vitest run",
     "prepublishOnly": "pnpm build",
@@ -68,9 +69,9 @@
     "@types/react": "18.2.33",
     "microbundle": "0.15.1",
     "react": "18.2.0",
-    "typescript": "5.2.2",
+    "typescript": "5.6.2",
     "vite": "4.5.0",
-    "vitest": "0.34.6",
+    "vitest": "3.0.7",
     "vitest-react": "0.9.5"
   }
 }

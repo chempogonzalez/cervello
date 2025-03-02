@@ -19,6 +19,9 @@ export function deepClone <T> (obj: T): T {
     Object.entries(obj).forEach(([key, value]) => {
       newObj[key] = deepClone(value)
     })
+    Object.getOwnPropertySymbols(obj).forEach(symbol => {
+      newObj[symbol] = deepClone((obj as any)[symbol])
+    })
   }
   return newObj as T
 }
