@@ -1,10 +1,14 @@
-/* eslint-disable tsdoc/syntax */
 
 import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 
+import { nonReactiveObjectSymbol } from '../../types/shared'
 import { proxifyStore } from '../helpers/new-proxify-store'
 import { deepClone } from '../utils/object'
 import { createCacheableSubject } from '../utils/subject'
+
+import type { StoreChange } from '../../types/shared'
+
+
 
 
 export type CervelloOptions<StoreValue extends Record<string, any>> = {
@@ -15,9 +19,9 @@ export type CervelloOptions<StoreValue extends Record<string, any>> = {
 export type CervelloUseStoreOptions<StoreValue extends Record<string, any>> = {
   initialValue?: (currentStore: StoreValue) => StoreValue,
   setValueOnMount?: (currentStore: StoreValue) => Promise<StoreValue>,
-  select?: 
-    | Array<FieldPath<StoreValue>>
-    | (() => Array<FieldPath<StoreValue>>)
+  select?:
+  | Array<FieldPath<StoreValue>>
+  | (() => Array<FieldPath<StoreValue>>)
   onChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
 }
 
@@ -30,6 +34,7 @@ type StoreValueMutable<T extends Record<string, any>> = {
 type FieldPath<T extends Record<string, any>> = {
   [K in keyof Required<T>]: T[K] extends Record<string, any>
     ? K extends string
+      // eslint-disable-next-line @typescript-eslint/ban-types
       ? T[K] extends Function
         ? never
         : T[K] extends Array<any>
@@ -43,18 +48,8 @@ type FieldPath<T extends Record<string, any>> = {
 
 
 
-export type StoreChange<T extends Record<string, any>> = {
-  change: {
-    fieldPath: string
-    newValue: any
-    previousValue: any
-  }
-  storeValue: T
-}
 
 
-
-export const nonReactiveObjectSymbol = Symbol('nonReactiveObject')
 export function nonReactive <T extends Record<string, any>> (initialValue: T): T {
   Object.defineProperty(initialValue, nonReactiveObjectSymbol, {
     value: true,
@@ -62,6 +57,7 @@ export function nonReactive <T extends Record<string, any>> (initialValue: T): T
     writable: false,
     configurable: false,
   })
+
   return initialValue
 }
 
@@ -79,7 +75,6 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     afterChange,
   } = options ?? {}
 
-  console.log('INITIAL VALUE', initialValue)
   const clonedInitialValue = deepClone(initialValue)
   const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
   const proxiesMap = new Map<string, StoreValueMutable<StoreValue>>()
@@ -171,4 +166,3 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     },
   }
 }
-

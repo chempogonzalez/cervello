@@ -1,8 +1,9 @@
 import { isValidElement } from 'react'
 
-import { nonReactiveObjectSymbol, type StoreChange } from '../store/new-index'
+import { nonReactiveObjectSymbol } from '../../types/shared'
 import { deepClone, isObject } from '../utils/object'
 
+import type { StoreChange } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
 
 
@@ -84,7 +85,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
     },
 
 
-    // eslint-disable-next-line sonarjs/cognitive-complexity
     set (targetObject, propName, newValue, receiver) {
       if (typeof propName === 'symbol') return true
 
