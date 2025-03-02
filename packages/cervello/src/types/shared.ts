@@ -23,3 +23,15 @@ export type UseSelector<T> = <Attributes extends Array< Exclude<keyof WithoutTyp
   selectors: Attributes,
   isEqualFunction?: (previousState: ObjectFromAttributes<T, Attributes>, currentState: ObjectFromAttributes<T, Attributes>) => boolean,
 ) => T
+
+
+export const nonReactiveObjectSymbol = Symbol('nonReactiveObject')
+export type StoreChange<T extends Record<string, any>> = {
+  change: {
+    fieldPath: string
+    newValue: any
+    previousValue: any
+  }
+  storeValue: T
+}
+
