@@ -1,8 +1,8 @@
 import { isValidElement } from 'react'
 
+import { nonReactiveObjectSymbol, type StoreChange } from '../store/new-index'
 import { deepClone, isObject } from '../utils/object'
 
-import type { StoreChange } from '../store/new-index'
 import type { CacheableSubject } from '../utils/subject'
 
 
@@ -31,6 +31,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
     // [FIELD_PATH]: fieldPath,
   } as unknown as T
 
+  const rootFunctions = fieldPath === 'root'
+    ? Object.fromEntries(Object.entries(objectToProxify).filter(([,v]) => typeof v === 'function'))
+    : {}
+
+
   // console.log('  - value proxify -> () >', { fieldPath, objectToProxify, objectWithRootValue })
 
   return new Proxy(objectWithRootValue, {
@@ -52,7 +57,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return (propertyValue as () => any).bind(receiver)
 
 
-      if (isObject(propertyValue) && !isValidElement(propertyValue)) {
+      // console.log('(GET)nonReactiveObjectSymbol?', {propName},propertyValue[nonReactiveObjectSymbol], targetObject)
+      if (isObject(propertyValue) && !isValidElement(propertyValue) && !propertyValue[nonReactiveObjectSymbol]) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
         if (proxies.has(newNestedFieldPath)) return proxies.get(newNestedFieldPath)
@@ -104,12 +110,14 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         if (JSON.stringify(value) === JSON.stringify(targetObject[ROOT_VALUE])) return true
 
         ;(targetObject as any)[ROOT_VALUE] = value
-        proxies.clear()
+        // Not needed here ?  (if not root)
+        // !! proxies.clear();
 
         if (fieldPath === 'root') {
+          proxies.clear();
           // Ensure predefined functions are kept
           (targetObject as any)[ROOT_VALUE] = {
-            ...Object.fromEntries(Object.entries(objectToProxify).filter(([,v]) => typeof v === 'function')),
+            ...rootFunctions,
             ...value,
           }
           store$$.next({
@@ -137,7 +145,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
       // console.log('  - value set -> () >', { value: JSON.stringify({ value }), target: JSON.stringify(target) })
 
-      if (isObject(value) && !isValidElement(value)) {
+      // console.log('nonReactiveObjectSymbol?', {propName},target[nonReactiveObjectSymbol], targetObject)
+      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol]) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
         if (!proxies.has(newNestedFieldPath)) {
@@ -160,11 +169,13 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           if (proxiedNestedObject === value) return true
           if (JSON.stringify(proxiedNestedObject) === JSON.stringify(value)) return true
 
-          // @ts-expect-error 
-          proxies.keys().forEach((key: string) => {
+          // console.log('  - value set -> () >', { fieldPath, propName, value, previousValue, target })
+
+          // Clear all nested fields' proxies before setting new value
+          for (const key of proxies.keys()) {
             if (key.startsWith(newNestedFieldPath) && key !== newNestedFieldPath)
               proxies.delete(key)
-          })
+          }
 
           proxiedNestedObject.$value = value as any
         }
@@ -173,7 +184,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       // console.log('  *- value set -> () >', { fieldPath, propName, value, previousValue, target })
       Reflect.set(target, propName, value, target)
 
-      store$$.next({
+      const nextStoreChange = {
         // To be disabled for performance and send same store reference
         // storeValue: JSON.parse(JSON.stringify(opts?.parentObjectToProxify ?? target)),
         storeValue: opts?.parentObjectToProxify ?? target,
@@ -182,7 +193,10 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           newValue: value,
           previousValue,
         },
-      })
+      }
+
+      store$$.next(nextStoreChange)
+      opts.afterChange?.([nextStoreChange])
 
       return true
     },
@@ -201,4 +215,3 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
   })
 }
-
