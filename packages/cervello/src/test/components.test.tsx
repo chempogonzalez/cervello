@@ -29,8 +29,9 @@ import {
 import { cervello, nonReactive } from '../lib/store/new-index'
 
 
-function sleep (ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+
+async function sleep (ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 
@@ -124,11 +125,10 @@ describe('[_CERVELLO_]', () => {
         const s = useStore()
 
         const handleOnClick = (reactive = true): void => {
-          if (reactive) {
+          if (reactive)
             store.nestedReactive.test = 1000
-          } else {
+          else
             store.nestedNonReactive.test = 1000
-          }
         }
 
         return (
@@ -136,8 +136,8 @@ describe('[_CERVELLO_]', () => {
             {numOfRenders}
             <pre data-testid='content'>{JSON.stringify(s, null, 2)}</pre>
 
-            <button onClick={() => handleOnClick()}>reactive</button>
-            <button onClick={() => handleOnClick(false)}>non-reactive</button>
+            <button onClick={() => { handleOnClick() }}>reactive</button>
+            <button onClick={() => { handleOnClick(false) }}>non-reactive</button>
           </div>
         )
       }
@@ -165,7 +165,6 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(1)
       expect(renderedResultToObject(content).nestedNonReactive.test).toEqual(2)
       expect(store.nestedNonReactive.test).toEqual(1000)
-
     })
   })
 
@@ -277,13 +276,14 @@ describe('[_CERVELLO_]', () => {
       it('  Change value on mount with `setValueOnMount`', async () => {
         const setValueOnMount = vi.fn().mockImplementation(async () => {
           await sleep(200)
+
           return ({ name: 'changed on mount' })
         })
 
         await act(() => {
           render(
             <AppWithClick
-              options={{setValueOnMount,}}
+              options={{ setValueOnMount }}
               onClick={(s) => { s.name = 'chempo!' }}
             />,
           )
@@ -297,15 +297,14 @@ describe('[_CERVELLO_]', () => {
         await waitFor(() => {
           assertNumOfRenders(1)
           expect(store.$value).toHaveProperty('name', 'changed on mount')
-        }, {timeout: 200})
+        }, { timeout: 200 })
       })
     })
   })
 
 
   describe('  - [store < useStore] changes', async () => {
-
-        vi.useRealTimers()
+    vi.useRealTimers()
     it('   Change first level string attribute multiple times', async () => {
       render(<AppWithClick onClick={(s) => { s.name = 'chempo!' }} />)
       const content = screen.getByTestId('content')
@@ -438,7 +437,7 @@ describe('[_CERVELLO_]', () => {
             onClick={(s: typeof store) => {
               s.links.nested.test = 1000
             }}
-          />
+          />,
         )
         const content = screen.getByTestId('content')
 
@@ -459,11 +458,11 @@ describe('[_CERVELLO_]', () => {
 
         expect(renderedResultObj.links.nested.test).toEqual(1000)
 
-        store.links = { nested: { test: 1000 } } as any
+        store.links = { newProp: 'prop', nested: { test: 1000, otherProp: 'other' } } as any
 
         await waitFor(() => {
           assertNumOfRenders(2)
-        }, {timeout: 3})
+        }, { timeout: 30 })
 
         store.links.nested.test = 4_000
         // @ts-expect-error - We are changing the store value
@@ -474,10 +473,10 @@ describe('[_CERVELLO_]', () => {
           assertNumOfRenders(3)
           expect(renderedResultToObject(content).links.nested.test).toEqual(4_000)
           expect(renderedResultToObject(content).links.nested.newProp).toEqual('new prop')
-        }, {timeout: 3})
+        }, { timeout: 3 })
       })
 
-      it('   Check object property (nested proxy) keeps the same object reference', async () => {
+      it('   Check object property (nested proxy) not produce re-render (not-changed ref)', async () => {
         render(<AppCheckReference />)
 
         const content = screen.getByTestId('content')
@@ -485,6 +484,15 @@ describe('[_CERVELLO_]', () => {
         // Just 1 re-render due to change of the other state the first time is rendered
         assertNumOfRenders(1)
         expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE.links))
+      })
+
+      it('   Check object property (nested proxy) keeps the same object reference', async () => {
+        const links = store.links
+
+
+        store.links.nested = { test: 1000 }
+
+        expect(links === store.links).toBeTruthy()
       })
     })
   })

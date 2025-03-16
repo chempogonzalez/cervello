@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { cervello, CervelloUseStoreOptions } from '../index'
+import { cervello } from '../index'
+
+import type { CervelloUseStoreOptions } from '../index'
 
 
 
@@ -74,7 +76,7 @@ export const INITIAL_VALUE = {
 export const { store, useStore, reset } = cervello(INITIAL_VALUE)
 
 
-export function App (props: {options?:CervelloUseStoreOptions<typeof INITIAL_VALUE>}): JSX.Element {
+export function App (props: { options?: CervelloUseStoreOptions<typeof INITIAL_VALUE> }): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
   const s = useStore(props.options)
@@ -88,7 +90,7 @@ export function App (props: {options?:CervelloUseStoreOptions<typeof INITIAL_VAL
 }
 
 
-export function AppWithClick ({ onClick, options }: { options?:CervelloUseStoreOptions<typeof INITIAL_VALUE>, onClick: (s: typeof store) => void }): JSX.Element {
+export function AppWithClick ({ onClick, options }: { options?: CervelloUseStoreOptions<typeof INITIAL_VALUE>, onClick: (s: typeof store) => void }): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
   const s = useStore(options)

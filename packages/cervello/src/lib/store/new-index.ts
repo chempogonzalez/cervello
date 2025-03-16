@@ -6,7 +6,7 @@ import { proxifyStore } from '../helpers/new-proxify-store'
 import { deepClone } from '../utils/object'
 import { createCacheableSubject } from '../utils/subject'
 
-import type { StoreChange } from '../../types/shared'
+import type { FieldPath, StoreChange } from '../../types/shared'
 
 
 
@@ -31,20 +31,6 @@ type StoreValueMutable<T extends Record<string, any>> = {
 
 
 
-type FieldPath<T extends Record<string, any>> = {
-  [K in keyof Required<T>]: T[K] extends Record<string, any>
-    ? K extends string
-      // eslint-disable-next-line @typescript-eslint/ban-types
-      ? T[K] extends Function
-        ? never
-        : T[K] extends Array<any>
-          ? K
-          : `${K}.*` | `${K}.${FieldPath<T[K]>}`
-      : never
-    : K extends string
-      ? K
-      : never
-}[keyof T]
 
 
 
@@ -77,12 +63,10 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
   const clonedInitialValue = deepClone(initialValue)
   const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
-  const proxiesMap = new Map<string, StoreValueMutable<StoreValue>>()
 
   const proxiedStore = proxifyStore(
     store$$ as any,
     clonedInitialValue,
-    proxiesMap,
     { beforeChange, afterChange },
   ) as StoreValueMutable<StoreValue>
 
@@ -103,8 +87,8 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
       const selectFieldPaths = useRef(
         (typeof options?.select === 'function'
-          ? options?.select?.().map(fp => `root.${fp}`)
-          : options?.select?.map(fp => `root.${fp}`))
+          ? options?.select?.() // .map(fp => `root.${fp}`)
+          : options?.select) // ?.map(fp => `root.${fp}`))
           ?? [],
       )
 
@@ -130,26 +114,26 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       useSyncExternalStore(
         (onStoreChange) => {
           const subscription = store$$.subscribe({
-            next: (nsv) => {
-              const nextStoreValue = Array.isArray(nsv)
-                ? nsv as Array<StoreChange<StoreValue>>
-                : [nsv]
+            next: (sc) => {
+              const storeChanges = Array.isArray(sc)
+                ? sc as Array<StoreChange<StoreValue>>
+                : [sc]
 
               if (!options?.select) {
                 onStoreChange()
-                options?.onChange?.(nextStoreValue)
+                options?.onChange?.(storeChanges)
 
                 return
               }
 
-              if (nextStoreValue.some(nextChange => (
+              if (storeChanges.some(nextChange => (
                 nextChange.change.fieldPath === 'root'
                 || selectFieldPaths.current.includes(nextChange.change.fieldPath))
                 || selectedFieldPathsForNestedObjects.current
                   .find(fp => nextChange.change.fieldPath.startsWith(fp)),
               )) {
                 onStoreChange()
-                options?.onChange?.(nextStoreValue)
+                options?.onChange?.(storeChanges)
               }
             },
           })

@@ -18,7 +18,6 @@ const ROOT_VALUE = Symbol('value')
 export function proxifyStore <T extends Record<string | symbol, any>> (
   store$$: CacheableSubject<StoreChange<T>>,
   objectToProxify: T,
-  proxies: Map<string, T & { $value: T }>,
   opts: {
     nestedFieldPath?: string
     parentObjectToProxify?: any
@@ -41,6 +40,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
   return new Proxy(objectWithRootValue, {
     get (targetObject, propName, receiver) {
+      if (propName === '_$fieldPath') return fieldPath
+
       const isRootTarget = Object.hasOwn(targetObject, ROOT_VALUE)
       const target = isRootTarget ? targetObject[ROOT_VALUE] : targetObject
 
@@ -49,6 +50,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       if (propName === 'toJSON') return () => target
 
       if (propName === '$value') return deepClone(target)
+
       const propertyValue = Reflect.get(target, propName, receiver)
 
       if (typeof propName === 'symbol') return propertyValue
@@ -58,35 +60,32 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return (propertyValue as () => any).bind(receiver)
 
 
-      // console.log('(GET)nonReactiveObjectSymbol?', {propName},propertyValue[nonReactiveObjectSymbol], targetObject)
-      if (isObject(propertyValue) && !isValidElement(propertyValue) && !propertyValue[nonReactiveObjectSymbol]) {
+      if (isRactiveValidObject(propertyValue)) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
-        if (proxies.has(newNestedFieldPath)) return proxies.get(newNestedFieldPath)
+
+        if (propertyValue._$fieldPath === newNestedFieldPath) return propertyValue
 
         const proxiedNestedObject = proxifyStore(
           store$$ as any,
-          propertyValue as any,
-          proxies,
+          propertyValue,
           {
-            nestedFieldPath: `${fieldPath}.${propName}`,
+            nestedFieldPath: newNestedFieldPath,
             parentObjectToProxify: opts.parentObjectToProxify ?? target,
             beforeChange: opts.beforeChange,
             afterChange: opts.afterChange,
           },
         )
 
-        proxies.set(newNestedFieldPath, proxiedNestedObject as any)
-
-        return proxiedNestedObject
+        return target[propName] = proxiedNestedObject
       }
 
       return propertyValue
     },
 
 
-    set (targetObject, propName, newValue, receiver) {
-      if (typeof propName === 'symbol') return true
+    set (parentObject, key, newValue, receiver) {
+      if (typeof key === 'symbol') return true
 
       const value = newValue
       // const value = opts.beforeChange
@@ -101,31 +100,27 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       //   : newValue
 
       // console.log('  - value set -> () >', { propName, value, targetObject })
-      const isRootTarget = Object.hasOwn(targetObject, ROOT_VALUE)
+      const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
 
-      if (isRootTarget && propName === '$value') {
-        const previousValue = targetObject[ROOT_VALUE]
+      if (isRootTarget && key === '$value') {
+        const previousValue = parentObject[ROOT_VALUE]
 
         if (value === previousValue) return true
-        if (JSON.stringify(value) === JSON.stringify(targetObject[ROOT_VALUE])) return true
+        if (JSON.stringify(value) === JSON.stringify(parentObject[ROOT_VALUE])) return true
 
-        ;(targetObject as any)[ROOT_VALUE] = value
-        // Not needed here ?  (if not root)
-        // !! proxies.clear();
-
-        if (fieldPath === 'root') {
-          proxies.clear();
-          // Ensure predefined functions are kept
-          (targetObject as any)[ROOT_VALUE] = {
+        if (fieldPath !== 'root') {
+          (parentObject as any)[ROOT_VALUE] = value
+        } else {
+          (parentObject as any)[ROOT_VALUE] = {
             ...rootFunctions,
             ...value,
           }
           store$$.next({
             // To be disabled for performance and send same store reference
             // storeValue: JSON.parse(JSON.stringify(targetObject[ROOT_VALUE])),
-            storeValue: targetObject[ROOT_VALUE],
+            storeValue: parentObject[ROOT_VALUE],
             change: {
-              fieldPath: 'root',
+              fieldPath: 'root' as any,
               newValue: value,
               previousValue,
             },
@@ -135,61 +130,27 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return true
       }
 
-      const target = isRootTarget ? targetObject[ROOT_VALUE] : targetObject
-      const previousValue = Reflect.get(target, propName, receiver)
+      const realInnerObject = isRootTarget ? parentObject[ROOT_VALUE] : parentObject
+      const previousValue = Reflect.get(realInnerObject, key, receiver)
 
 
       if (previousValue === value)
         return true
 
 
-      // console.log('  - value set -> () >', { value: JSON.stringify({ value }), target: JSON.stringify(target) })
+      // New object values, check if the field has already a proxy created to use it instead of reacreating a new instance
+      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol] && previousValue._$fieldPath)
+        previousValue.$value = value
+      else
+        Reflect.set(realInnerObject, key, value, realInnerObject)
 
-      // console.log('nonReactiveObjectSymbol?', {propName},target[nonReactiveObjectSymbol], targetObject)
-      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol]) {
-        const newNestedFieldPath = `${fieldPath}.${propName}`
-
-        if (!proxies.has(newNestedFieldPath)) {
-          const proxiedNestedObject = proxifyStore(
-            store$$ as any,
-            value as any,
-            proxies,
-            {
-              nestedFieldPath: `${fieldPath}.${propName}`,
-              parentObjectToProxify: opts.parentObjectToProxify ?? target,
-              beforeChange: opts.beforeChange,
-              afterChange: opts.afterChange,
-            },
-          )
-
-          proxies.set(newNestedFieldPath, proxiedNestedObject as any)
-        } else {
-          const proxiedNestedObject = proxies.get(newNestedFieldPath)!
-
-          if (proxiedNestedObject === value) return true
-          if (JSON.stringify(proxiedNestedObject) === JSON.stringify(value)) return true
-
-          // console.log('  - value set -> () >', { fieldPath, propName, value, previousValue, target })
-
-          // Clear all nested fields' proxies before setting new value
-          for (const key of proxies.keys()) {
-            if (key.startsWith(newNestedFieldPath) && key !== newNestedFieldPath)
-              proxies.delete(key)
-          }
-
-          proxiedNestedObject.$value = value as any
-        }
-      }
-
-      // console.log('  *- value set -> () >', { fieldPath, propName, value, previousValue, target })
-      Reflect.set(target, propName, value, target)
 
       const nextStoreChange = {
         // To be disabled for performance and send same store reference
         // storeValue: JSON.parse(JSON.stringify(opts?.parentObjectToProxify ?? target)),
-        storeValue: opts?.parentObjectToProxify ?? target,
+        storeValue: opts?.parentObjectToProxify ?? realInnerObject,
         change: {
-          fieldPath: `${fieldPath}.${propName}`,
+          fieldPath: `${fieldPath}.${key}`.replace('root.', '') as any,
           newValue: value,
           previousValue,
         },
@@ -214,4 +175,9 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
     },
 
   })
+}
+
+
+function isRactiveValidObject <T extends Record<string, any>> (value: T): boolean {
+  return isObject(value) && !isValidElement(value) && !(value as any)[nonReactiveObjectSymbol]
 }
