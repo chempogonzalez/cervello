@@ -14,6 +14,7 @@ const { OFF, WARNING, ERROR } = RULES
 module.exports = {
   // Rules for .js or .jsx files
   extends: ['ts-standard-next'],
+  root: true,
 
   // Rules for .ts or .tsx files
   overrides: [
