@@ -27,6 +27,14 @@ const config = {
     defaultLocale: 'en',
     locales: ['en', 'es'],
   },
+  scripts: [
+    {
+      'src': 'https://cdn.usefathom.com/script.js',
+      'data-spa': 'auto',
+      'data-site': 'SSOTLSQC',
+      'defer': true,
+    },
+  ],
 
   presets: [
     [
