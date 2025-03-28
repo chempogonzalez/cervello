@@ -11,8 +11,12 @@ import type { FieldPath, StoreChange } from '../../types/shared'
 
 
 
+// export type CervelloOptions<StoreValue extends Record<string, any>> = {
+//   beforeChange?: (storeChange: StoreChange<StoreValue>) => unknown | undefined
+//   afterChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
+// }
+
 export type CervelloOptions<StoreValue extends Record<string, any>> = {
-  beforeChange?: (storeChange: StoreChange<StoreValue>) => unknown | undefined
   afterChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
 }
 
@@ -25,7 +29,7 @@ export type CervelloUseStoreOptions<StoreValue extends Record<string, any>> = {
   onChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
 }
 
-type StoreValueMutable<T extends Record<string, any>> = {
+type MutableStoreValue<T extends Record<string, any>> = {
   $value: T
 } & T
 
@@ -52,12 +56,12 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
   initialValue: StoreValue,
   options?: CervelloOptions<StoreValue>,
 ): {
-    store: StoreValueMutable<StoreValue>,
+    store: MutableStoreValue<StoreValue>,
     reset: () => void,
-    useStore: (options?: CervelloUseStoreOptions<StoreValue>) => StoreValueMutable<StoreValue>
+    useStore: (options?: CervelloUseStoreOptions<StoreValue>) => MutableStoreValue<StoreValue>
   } {
   const {
-    beforeChange,
+    // beforeChange,
     afterChange,
   } = options ?? {}
 
@@ -67,8 +71,9 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
   const proxiedStore = proxifyStore(
     store$$ as any,
     clonedInitialValue,
-    { beforeChange, afterChange },
-  ) as StoreValueMutable<StoreValue>
+    // { beforeChange, afterChange },
+    { afterChange },
+  ) as MutableStoreValue<StoreValue>
 
 
   return {
@@ -78,17 +83,17 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     },
     useStore: (options) => {
       const initialValue = options?.initialValue?.apply(proxiedStore, [proxiedStore.$value])
-      const initialValueSet = useRef(false)
+      const isInitialValueSet = useRef(false)
 
-      if (!initialValueSet.current && initialValue && initialValue !== proxiedStore) {
-        initialValueSet.current = true
+      if (!isInitialValueSet.current && initialValue && initialValue !== proxiedStore) {
+        isInitialValueSet.current = true
         proxiedStore.$value = initialValue
       }
 
       const selectFieldPaths = useRef(
         (typeof options?.select === 'function'
-          ? options?.select?.() // .map(fp => `root.${fp}`)
-          : options?.select) // ?.map(fp => `root.${fp}`))
+          ? options?.select?.()
+          : options?.select)
           ?? [],
       )
 
@@ -129,8 +134,7 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
               if (storeChanges.some(nextChange => (
                 nextChange.change.fieldPath === 'root'
                 || selectFieldPaths.current.includes(nextChange.change.fieldPath))
-                || selectedFieldPathsForNestedObjects.current
-                  .find(fp => nextChange.change.fieldPath.startsWith(fp)),
+                || selectedFieldPathsForNestedObjects.current.find(fp => nextChange.change.fieldPath.startsWith(fp)),
               )) {
                 onStoreChange()
                 options?.onChange?.(storeChanges)

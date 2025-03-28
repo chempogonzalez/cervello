@@ -1,3 +1,4 @@
+
 import { INTERNAL_VALUE_PROP } from '../helpers/constants'
 
 
@@ -13,16 +14,21 @@ export function deepClone <T> (obj: T): T {
     return obj
 
   let newObj = {} as any
+
   if (Array.isArray(obj)) {
     newObj = obj.map(item => deepClone(item))
-  } else {
+  // eslint-disable-next-line no-prototype-builtins
+  } else if (!obj.hasOwnProperty('$$typeof')) {
     Object.entries(obj).forEach(([key, value]) => {
       newObj[key] = deepClone(value)
     })
-    Object.getOwnPropertySymbols(obj).forEach(symbol => {
+    Object.getOwnPropertySymbols(obj).forEach((symbol) => {
       newObj[symbol] = deepClone((obj as any)[symbol])
     })
+  } else {
+    newObj = obj
   }
+
   return newObj as T
 }
 
@@ -64,6 +70,7 @@ export const okTarget = (target: any): any => target[INTERNAL_VALUE_PROP] ?? tar
 export function getPartialObjectFromProperties<T> (properties: Array<keyof T>, obj: T): any {
   return properties.reduce<any>((acc, curr) => {
     acc[curr] = obj[curr]
+
     return acc
   }, {})
 }
@@ -71,6 +78,7 @@ export function getPartialObjectFromProperties<T> (properties: Array<keyof T>, o
 
 
 const stringify = (obj: any): string => JSON.stringify(obj)
+
 /**
  * Compare 2 provided objects by stringing them
  * @param a - first object

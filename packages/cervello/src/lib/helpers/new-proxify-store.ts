@@ -12,7 +12,6 @@ import type { CacheableSubject } from '../utils/subject'
 ('hasOwn' in Object) || (Object.hasOwn = Object.call.bind(Object.hasOwnProperty))
 
 const ROOT_VALUE = Symbol('value')
-// const FIELD_PATH = Symbol('field-path')
 
 
 export function proxifyStore <T extends Record<string | symbol, any>> (
@@ -21,22 +20,19 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
   opts: {
     nestedFieldPath?: string
     parentObjectToProxify?: any
-    beforeChange?: (storeChange: StoreChange<T>) => any
+    // beforeChange?: (storeChange: StoreChange<T>) => any
     afterChange?: (storeChange: Array<StoreChange<T>>) => void
-  } = { },
+  } = {},
 ): T {
   const fieldPath = opts.nestedFieldPath ?? 'root'
+
   const objectWithRootValue = {
     [ROOT_VALUE]: objectToProxify,
-    // [FIELD_PATH]: fieldPath,
   } as unknown as T
 
   const rootFunctions = fieldPath === 'root'
     ? Object.fromEntries(Object.entries(objectToProxify).filter(([,v]) => typeof v === 'function'))
     : {}
-
-
-  // console.log('  - value proxify -> () >', { fieldPath, objectToProxify, objectWithRootValue })
 
   return new Proxy(objectWithRootValue, {
     get (targetObject, propName, receiver) {
@@ -44,8 +40,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
       const isRootTarget = Object.hasOwn(targetObject, ROOT_VALUE)
       const target = isRootTarget ? targetObject[ROOT_VALUE] : targetObject
-
-      // console.log('  - value get -> () >', { propName, targetObject, target })
 
       if (propName === 'toJSON') return () => target
 
@@ -60,7 +54,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return (propertyValue as () => any).bind(receiver)
 
 
-      if (isRactiveValidObject(propertyValue)) {
+      if (isValidReactiveObject(propertyValue)) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
 
@@ -72,7 +66,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           {
             nestedFieldPath: newNestedFieldPath,
             parentObjectToProxify: opts.parentObjectToProxify ?? target,
-            beforeChange: opts.beforeChange,
+            // beforeChange: opts.beforeChange,
             afterChange: opts.afterChange,
           },
         )
@@ -88,18 +82,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       if (typeof key === 'symbol') return true
 
       const value = newValue
-      // const value = opts.beforeChange
-      //   ? opts.beforeChange({
-      //     change: {
-      //       fieldPath: `${fieldPath}.${propName}`,
-      //       newValue,
-      //       previousValue: Reflect.get(receiver, propName, receiver),
-      //     },
-      //     storeValue: targetObject[ROOT_VALUE],
-      //   }) ?? newValue
-      //   : newValue
-
-      // console.log('  - value set -> () >', { propName, value, targetObject })
       const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
 
       if (isRootTarget && key === '$value') {
@@ -178,6 +160,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 }
 
 
-function isRactiveValidObject <T extends Record<string, any>> (value: T): boolean {
+function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {
   return isObject(value) && !isValidElement(value) && !(value as any)[nonReactiveObjectSymbol]
 }

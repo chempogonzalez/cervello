@@ -7,7 +7,7 @@
 <img src="https://github.com/chempogonzalez/cervello/blob/main/assets/emoji-logo.png" style="display:block;">
 </a>
 
-> 🤯 Simplest and truly reactive state manager for React _(just 1.5kb)_
+> 🤯 Simple, reactive, tiny and performant state-management library for React _(just 1.5kb)_
 
 <br>
 <br>
@@ -22,10 +22,10 @@
 
 ## 🚀 **Features**
 
-- ⚛️ Truly reactive on store change like normal objects without functions **_(nested properties too 🚀!!)_**
-- ✅ Super simple and minimalistic API
-- 🐨 Listen properties lazily
-- 👌 No unnecessary re-renders
+- ⚛️ Reactive with store object changes **_(nested properties too 🚀!!)_**
+- ✅ Simple & minimalistic API
+- 🚀 Batched updates and optimized re-renders
+- 🐨 Lazy listen nested properties
 - 🔒 Immutable changes
 - 🔑 Typescript support
 
@@ -44,45 +44,46 @@ yarn add @cervello/react
 
 ## 💻 **Quick Usage**
 
-The `cervello` function allows you to create a new store in an easy way.
-Just set the initial value _`(the type will be inferred based on this value)`_ and you have it!
+<!-- The `cervello` function allows you to create a new store in an easy way. -->
+<!-- Just set the initial value _`(the type will be inferred based on this value)`_ and you have it! -->
+
+It's **as simple as reassign a new value** to the store properties. <br/>It will notify all the components using `useStore` hook to re-render with the new value.
 
 ```ts
 // - store-example.ts
 import { cervello } from '@cervello/react'
 
 export const {
-  store,       // Reactive store object
-  useStore,    // Hook to listen for store changes
-  useSelector, // Hook to listen for changes on parts of the store
+  store,       // Object with reactive changes
+  useStore,    // Hook to listen for store or partial store changes
   reset,       // Function to reset the store to initial value
 } = cervello({
-  count: 0,
-  isModalOpen: false,
-  /* ... */
+  fullName: 'Cervello Store',
+  address: {
+    city: 'Huelva',
+    /* ... */
+  },
 })
 
 
-// With the store object you can use it outside of React components
-const increment = () => { store.count++ }
+// Change value from anywhere
+store.address.city = 'Sevilla'
 
 
-const Button = () => {
-  const { count } = useStore() // Listen for changes on the whole store
-  return (
-    <button onClick={increment}>
-      {count}
-    </button>
-  )
+// Listen for changes from components
+function Address() {
+  const { address } = useStore()
+  return (<p>City: {address.city}</p>)
 }
 
-const ButtonWithSelector = () => {
-  const { count } = useSelector(['count']) // Listen for changes just on 'count' property
-  return (
-    <button onClick={increment}>
-      {count}
-    </button>
-  )
+
+// Just listen for changes in the `city` property
+const AddressWithSelector = () => {
+  const { address } = useStore({
+    select: ['address.city']
+  })
+
+  return (<p>City: {address.city}</p>)
 }
 ```
 

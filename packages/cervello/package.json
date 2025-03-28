@@ -1,7 +1,7 @@
 {
   "name": "@cervello/react",
   "type": "module",
-  "version": "5.0.0-beta.1",
+  "version": "5.0.0-beta.2",
   "description": "🤯 Simple, reactive, tiny and performant state-management library",
   "author": "Chempo",
   "license": "MIT",
@@ -54,6 +54,7 @@
   ],
   "scripts": {
     "release": "pnpx bumpp --push=false && npm publish --access public",
+    "docs:dev": "pnpm run --filter @cervello/react docs:dev",
     "publish:beta": "npm publish --tag beta",
     "test": "vitest --watch",
     "test:release": "vitest run",

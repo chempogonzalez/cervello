@@ -54,10 +54,6 @@ beforeEach(() => {
   reset()
 })
 
-// afterEach(() => {
-//   vi.useRealTimers()
-// })
-
 
 describe('[_CERVELLO_]', () => {
   describe('- [__store__]', async () => {
@@ -109,17 +105,18 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(0)
     })
 
-    it(' nonReactive field', async () => {
+    it('  nonReactive field', async () => {
       const { store, useStore } = cervello({
         nestedReactive: {
           test: 1,
         },
         nestedNonReactive: nonReactive({
           test: 2,
+          customComponent: <div>custom</div>,
         }),
       })
 
-      const R = () => {
+      const NonReactiveTestComponent = () => {
         const [numOfRenders] = useLogRenders('App')
 
         const s = useStore()
@@ -142,7 +139,7 @@ describe('[_CERVELLO_]', () => {
         )
       }
 
-      render(<R />)
+      render(<NonReactiveTestComponent />)
 
       const content = screen.getByTestId('content')
 
@@ -303,8 +300,7 @@ describe('[_CERVELLO_]', () => {
   })
 
 
-  describe('  - [store < useStore] changes', async () => {
-    vi.useRealTimers()
+  describe('  - {store} = useStore()', async () => {
     it('   Change first level string attribute multiple times', async () => {
       render(<AppWithClick onClick={(s) => { s.name = 'chempo!' }} />)
       const content = screen.getByTestId('content')
@@ -406,11 +402,13 @@ describe('[_CERVELLO_]', () => {
 
     describe('  * [Nested Object] proxied', async () => {
       it('   Change nested property', async () => {
-        render(<AppWithClick
-          onClick={(s: typeof store) => {
-            s.links.nested.test = 1000
-          }}
-               />)
+        render(
+          <AppWithClick
+            onClick={(s: typeof store) => {
+              s.links.nested.test = 1000
+            }}
+          />,
+        )
         const content = screen.getByTestId('content')
 
 
