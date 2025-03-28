@@ -1,78 +1,165 @@
 ---
 id: use-store
-title: useStore
+title: "- useStore"
 sidebar_position: 2
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 # Get / set store from React component
-## useStore
+
+<!-- ## useStore -->
+
+<br/>
+
+Hook that allows you to have a reactive store which re-renders the component when a new value is set.
+
+<br/>
 
 ```ts
-const { useStore } = cervello({ example: true })
+const { useStore } = cervello({ fullName: '', email: '' })
+
+function ExampleComponent() {
+  const { fullName, email } = useStore()
+
+  return (
+    <span>{ fullName } - { email }</span>
+  )
+}
 ```
-
-## Description
-React hook that allows you to have a reactive store which re-renders when a new value was set to the store or any of its properties.
-
-_If you have set a [name for the store](/docs/introduction/usage#example-with-options), the returned object property will be `use{name}Store`_
-
 
 ## Returned value
 
-| Type      |Default                    |Description      |
-|---        |---                        |---	            |
-| `Object`  | _`initial store value`_   | Returned store object . <br/> You can modify it and it will notify all the components  |
-
+| Type            |Description      |
+|---              |---             |
+| `Object (Proxy)`| Reactive store object that you can modify like mutating an object. <br/>It will notify all the components using `useStore`  |
 
 :::caution To consider
 If you want to modify a property of the store, you need to use it without destructuring, like this:
-```tsx
-const { useStore } = cervello({ isActive: true })
 
-const ExampleComponent = () => {
+```tsx
+const { useStore } = cervello({ fullName: '', email: '' })
+
+function ExampleComponent () {
   const store = useStore()
   return (
-    <button onClick={() => store.isActive = false}>
+    <button onClick={() => { store.fullName = 'Cervello Store' }}>
       Set Active to false
     </button>
   )
 }
 ```
+
 :::
 
-## Example
+## Options _(optional)_
+
+| Name                    | Type                               |Description         |
+|---                      |---                                 |---                 |
+| `initialValue`          | `Function`<br/> () => `Object`     | Initialize the store with a value like React's `useState` hook. <br/>It doesn't produce a re-render on init<br/>_(It works on server-side)_
+| `select`                | `Array<string>` or `Function`<br/> () => `Array<string>` | Select the properties you want to listen to. <br/>It will only re-render the component if the selected properties change.
+| `setValueOnMount`       | `Async Function`<br/> () => `Promise<Object>` |  Set full store value on initial render |
+| `onChange`            | `Function`<br /> (storeChange: `Object`) => void |  Callback function that will be called when the store changes with change information
+
+## Example with options
+
 <Tabs groupId="code-language">
-  <TabItem value="jsx" label="JavaScript">
+  <TabItem value="tsx" label="TypeScript">
 
-    import { useStore } from './store-example'
+    const { useStore } = cervello({
+      fullName: '',
+      email: ''
+    })
 
-    const CounterLabel = () => {
-      /** 
-       * You can destructure the store because it just reads
-       * the value without any changes to store
-       */
-      const { count } = useStore()
 
-      return (<span>{ count }</span>)
+    /** 
+     * `initialValue` example
+     *  Initialize the store with a value without re-rendering (it works on server-side)
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        initialValue: () => ({ fullName: 'Cervello', email: 'example@cervello.dev' }),
+      })
+
+      return (<span>{ store.fullName }</span>)
+    }
+
+
+    /**
+     * `select` example
+     *  Select the properties you want to listen to (only re-render if the selected properties change)
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        select: ['fullName'],
+      })
+
+      return (<span>{ store.fullName }</span>)
+    }
+
+
+    /**
+     * `setValueOnMount` example
+     *  Set full store value on initial render
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        setValueOnMount: async () => {
+          // ... Fetch data from API
+          return { fullName: 'Cervello', email: 'example@cervello.dev' }
+      })
+
+      return (<span>{ store.fullName }</span>)
     }
 
   </TabItem>
-  <TabItem value="tsx" label="TypeScript">
+  <TabItem value="jsx" label="JavaScript">
 
-    import { useStore } from './store-example'
+    const { useStore } = cervello({
+      fullName: '',
+      email: ''
+    })
 
-    const CounterLabel = () => {
-      /** 
-       * You can destructure the store because it just reads
-       * the value without any changes to store
-       */
-      const { count } = useStore()
 
-      return (<span>{ count }</span>)
+    /** 
+     * `initialValue` example
+     *  Initialize the store with a value without re-rendering (it works on server-side)
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        initialValue: () => ({ fullName: 'Cervello', email: 'example@cervello.dev' }),
+      })
+
+      return (<span>{ store.fullName }</span>)
+    }
+
+
+    /**
+     * `select` example
+     *  Select the properties you want to listen to (only re-render if the selected properties change)
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        select: ['fullName'],
+      })
+
+      return (<span>{ store.fullName }</span>)
+    }
+
+
+    /**
+     * `setValueOnMount` example
+     *  Set full store value on initial render
+     * */
+    function ExampleComponent () {
+      const store = useStore({
+        setValueOnMount: async () => {
+          // ... Fetch data from API
+          return { fullName: 'Cervello', email: 'example@cervello.dev' }
+      })
+
+      return (<span>{ store.fullName }</span>)
     }
 
   </TabItem>
 </Tabs>
-

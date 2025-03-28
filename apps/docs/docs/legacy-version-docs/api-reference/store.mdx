@@ -1,0 +1,129 @@
+---
+id: store
+title: store
+sidebar_position: 1
+
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Reactive store object
+## store
+```ts
+const { store } = cervello({ example: true })
+```
+
+## Description
+Cervello returns an object with `store` attribute.
+It's a reactive object that you can use `inside or outside react components` to get or modify the store.
+It will automatically notify all the components subscribed to the store when a change is made.
+
+_If you have set a [name for the store](/docs/introduction/usage#example-with-options), the returned object property will be `{name}Store`_
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components subscribed to the store when a change is made
+     */
+    const increment = () => { store.count++ }
+
+    const CounterButton = () => (
+      <button onClick={increment}>
+        Increment
+      </button>
+    )
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components subscribed to the store when a change is made
+     */
+    const increment = () => { store.count++ }
+
+    const CounterButton = () => (
+      <button onClick={increment}>
+        Increment
+      </button>
+    )
+
+  </TabItem>
+</Tabs>
+
+
+<br/>
+
+
+
+## Special attribute
+The returned Store object is your initial value passed in + a custom attribute called `$value`. <br/>
+This attribute is used to replace the complete store if needed in a single transaction
+
+| Name              | Type                      |Default                                |Description        |
+|---                |---                        |---                                    |---	              |
+| `$value`          | `Initial store object`    | undefined                             |  Attribute to be used as a **setter** to replace completely the store |
+
+<br/>
+
+## Attribute $value example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes.
+     * Complete replace of the store
+     */
+    const setLoggedUser = () => {
+      const newStore = {
+        isLoggedIn: true,
+        userName: 'Chempo'
+      }
+
+      store.$value = newStore
+    }
+
+    const LoginComponent = () => (
+      <button onClick={setLoggedUser}>
+        Login
+      </button>
+    )
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { store } from './store-example'
+
+    /**
+     * It can be used outside the react components
+     * It will notify all the components listening for changes.
+     * Complete replace of the store
+     */
+    const setLoggedUser = (): void => {
+      const newStore: typeof store = {
+        isLoggedIn: true,
+        userName: 'Chempo'
+      }
+
+      store.$value = newStore
+    }
+
+    const LoginComponent = () => (
+      <button onClick={setLoggedUser}>
+        Login
+      </button>
+    )
+
+  </TabItem>
+</Tabs>
+

@@ -1,66 +1,97 @@
 ---
 id: persist
-title: Persist on localStorage
+title: Persist value on localStorage
 sidebar_position: 3
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-
 ## Description
+
 This is an example where you can store in local-storage (it could be any other place as cookies) the theme
 selected by the user in case he/she wants to change it.<br/>
 Then on initialization of the store, we get the theme from local-storage and set it as the current theme.
 
-
-
 ## Example
+
 <Tabs groupId="code-language">
+  <TabItem value="tsx" label="TypeScript">
+
+    // store.ts
+    import { cervello } from '@cervello/react'
+
+    const { store } = cervello({
+      theme: 'dark',
+      user: null,
+    }, {
+      afterChange: (storeChange) => {
+        if (storeChange.fieldPath === 'theme') {
+          localStorage.setItem('theme', storeChange.newValue)
+        }
+      },
+    })
+
+    // theme-provider.ts
+    import { useStore } from './store'
+
+    function ThemeProvider () {
+      const store = useStore({
+        select: ['theme']
+        initialValue: (currentStore) => {
+          const themeValue = localStorage.getItem('theme') ?? 'dark'
+          return {
+            ...currentStore,
+            theme: themeValue,
+          }
+        },
+      })
+
+      return (
+        <ThemeContext.Provider value={store.theme}>
+          {children}
+        </ThemeContext.Provider>
+      )
+    }
+      
+  </TabItem>
   <TabItem value="jsx" label="JavaScript">
 
     // store.js
     import { cervello } from '@cervello/react'
 
-    const { store } = cervello(() => {
-      const themeValue = localStorage.getItem('theme') ?? 'dark'
+    const { store } = cervello({
+      theme: 'dark',
+      user: null,
+    }, {
+      afterChange: (storeChange) => {
+        if (storeChange.fieldPath === 'theme') {
+          localStorage.setItem('theme', storeChange.newValue)
+        }
+      },
+    })
 
-      return {
-        theme: themeValue,
-        user: null,
-      }
-    }).use(persistTheme)
+    // theme-provider.js
+    import { useStore } from './store'
 
-      
-    const persistTheme = ({ onPartialChange }) => {
-      onPartialChange(['theme'], (store) => {
-        localStorage.setItem('theme', store.theme)
+    function ThemeProvider () {
+      const store = useStore({
+        select: ['theme']
+        initialValue: (currentStore) => {
+          const themeValue = localStorage.getItem('theme') ?? 'dark'
+          return {
+            ...currentStore,
+            theme: themeValue,
+          }
+        },
       })
+
+      return (
+        <ThemeContext.Provider value={store.theme}>
+          {children}
+        </ThemeContext.Provider>
+      )
     }
-
-  </TabItem>
-  <TabItem value="tsx" label="TypeScript">
-
-    // store.ts
-    import { cervello } from '@cervello/react'
-    import type { UseFunction } from '@cervello/react'
-
-    const { store } = cervello(() => {
-      const themeValue = localStorage.getItem('theme') ?? 'dark'
-
-      return {
-        theme: themeValue,
-        user: null,
-      }
-    }).use(persistTheme)
-
       
-    
-    const persistTheme: UseFunction<typeof store> = ({ onPartialChange }): void => {
-      onPartialChange(['theme'], (store) => {
-        localStorage.setItem('theme', store.theme)
-      })
-    }
 
   </TabItem>
 </Tabs>
-

@@ -1,0 +1,48 @@
+---
+id: reset
+title: reset
+sidebar_position: 4
+---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Re-initialize the store
+## reset
+
+```ts
+const { reset } = cervello({ example: true })
+```
+
+## Description
+Function that allows you to reset the store to the initial value passed to the `cervello` function.
+
+_If you have set a [name for the store](/docs/introduction/usage#example-with-options), the returned object property will be `reset{name}Store`_
+
+
+## Example
+<Tabs groupId="code-language">
+  <TabItem value="jsx" label="JavaScript">
+
+    import { reset } from './user-store'
+
+    const LogoutButton = () => (
+      <button onClick={() => reset()}>
+        Logout
+      </button>
+    )
+
+
+  </TabItem>
+  <TabItem value="tsx" label="TypeScript">
+
+    import { reset } from './user-store'
+
+    const LogoutButton = () => (
+      <button onClick={() => reset()}>
+        Logout
+      </button>
+    )
+
+  </TabItem>
+</Tabs>
+

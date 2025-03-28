@@ -12,7 +12,7 @@
   "scripts": {
     "build": "pnpm --filter=@cervello/react run build",
     "dev": "pnpm run --recursive --parallel dev",
-    "docs": "pnpm --filter=docs run docs:dev",
+    "docs:dev": "pnpm --filter=docs run docs:dev",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint-fix": "npm run lint -- --fix",
     "test": "pnpm --filter=@cervello/react run test:release",

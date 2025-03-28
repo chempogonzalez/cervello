@@ -1,57 +1,32 @@
 ---
 id: nested-objects-reactivity
-title: Nested Objects Reactivity
+title: Nested objects reactivity
 sidebar_position: 1
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-
-## Description
 Cervello provides you out-of-the-box support for nested objects.<br/>
 You can change a nested property of an object and it will be notified automatically as well without any problem
 
-
-
-## Example
 <Tabs groupId="code-language">
-  <TabItem value="jsx" label="JavaScript">
-
-    // address-changer.jsx ------------------------------------------------------
-    import { store } from './other-example'
-
-    const AddressChanger = () => {
-      return (
-        <button onClick={() => { store.address.city = 'Seville' }}>
-          Change city to Seville
-        </button>
-      )
-    }
-
-
-    // address.jsx --------------------------------------------------------------       
-    import { useSelector } from './other-example'
-
-    // Component listening for address object changes
-    const Address = () => {
-      const { address } = useSelector(['address'])
-      const { street, city } = address
-
-      return (
-        <div>
-          <span>{ street }</span>
-          <span>{ city }</span>
-        </div>
-      )
-    }
-
-  </TabItem>
   <TabItem value="tsx" label="TypeScript">
 
-    // address-changer.tsx ------------------------------------------------------
-    import { store } from './other-example'
+    // store-example.ts ---------------------------------------------------------
+    import { cervello } from 'cervello'
 
-    const AddressChanger = () => {
+    const { store } = cervello({
+      name: 'Cervello',
+      address: {
+        city: 'Huelva'
+        street: 'Avenida de Andalucía'
+      }
+    })
+
+    // address-changer.tsx ------------------------------------------------------
+    import { store } from './store-example'
+
+    function AddressChanger () {
       return (
         <button onClick={() => { store.address.city = 'Seville' }}>
           Change city to Seville
@@ -61,21 +36,82 @@ You can change a nested property of an object and it will be notified automatica
 
 
     // address.tsx --------------------------------------------------------------
-    import { useSelector } from './other-example'
+    import { useStore } from './store-example'
 
     // Component listening for address object changes
-    const Address = () => {
-      const { address } = useSelector(['address'])
-      const { street, city } = address
+    function Address () {
+      const { address } = useStore({ select: ['address.*'] })
 
       return (
         <div>
-          <span>{ street }</span>
-          <span>{ city }</span>
+          <p>{ address.street }</p>
+          <p>{ address.city }</p>
         </div>
       )
     }
 
+
+    // city.tsx --------------------------------------------------------------
+    import { useStore } from './store-example'
+
+    // Listening for nested object single property
+    function AddressCity () {
+      const { address } = useStore({ select: ['address.city'] })
+
+      return (<p>{ address.city }</p>)
+    }
+
+  </TabItem>
+  <TabItem value="jsx" label="JavaScript">
+
+    // store-example.ts ---------------------------------------------------------
+    import { cervello } from 'cervello'
+
+    const { store } = cervello({
+      name: 'Cervello',
+      address: {
+        city: 'Huelva'
+        street: 'Avenida de Andalucía'
+      }
+    })
+
+    // address-changer.tsx ------------------------------------------------------
+    import { store } from './store-example'
+
+    function AddressChanger () {
+      return (
+        <button onClick={() => { store.address.city = 'Seville' }}>
+          Change city to Seville
+        </button>
+      )
+    }
+
+
+    // address.tsx --------------------------------------------------------------
+    import { useStore } from './store-example'
+
+    // Component listening for address object changes
+    function Address () {
+      const { address } = useStore({ select: ['address.*'] })
+
+      return (
+        <div>
+          <p>{ address.street }</p>
+          <p>{ address.city }</p>
+        </div>
+      )
+    }
+
+
+    // city.tsx --------------------------------------------------------------
+    import { useStore } from './store-example'
+
+    // Listening for nested object single property
+    function AddressCity () {
+      const { address } = useStore({ select: ['address.city'] })
+
+      return (<p>{ address.city }</p>)
+    }
+
   </TabItem>
 </Tabs>
-

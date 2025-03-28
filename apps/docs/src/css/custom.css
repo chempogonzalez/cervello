@@ -26,6 +26,7 @@ html[data-theme='dark'] {
   --ifm-color-primary-lightest: #6effee;
   --ifm-background-color: #062932;
   --ifm-background-surface-color: #052129;
+  --ifm-toc-border-color: #052129;
   --ifm-menu-color: white
 }
 
@@ -75,21 +76,14 @@ h1::before {
 h2 {
   position: relative;
 }
-h2::before{
-  content: '';
-  position: absolute;
-  inset: -18;
-  width: 42px;
-  top: 50%;
-  transform: translateY(-50%);
-  left: -17px;
-  border-radius: 50%;
-  aspect-ratio: 1/1;
-  z-index: -1;
-  background: var(--ifm-color-primary-darkest);
-  opacity: 0.1;
-  filter: blur(3px)
 
+code {
+  padding: 0.2em 0.4em;
+  background: var(--ifm-background-surface-color);
+  color: white;
+  opacity: 0.9;
+  font-weight: 600;
+  /* white-space: nowrap; */
 }
 
 .pagination-nav__link {
@@ -104,3 +98,14 @@ h2::before{
 .menu__list-item-collapsible > a, .menu__list-item-collapsible > a.menu__link--active {
   background-color: var(--ifm-background-surface-color) !important;
 }
+
+aside {
+  box-sizing: content-box;
+}
+
+
+.footer__items {
+  background: var(--ifm-background-surface-color);
+}
+
+

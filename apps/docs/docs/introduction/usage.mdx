@@ -6,83 +6,29 @@ description: 'Introduction > Usage: Code example with a basic store'
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-
 ## Description
+
 The `cervello` function allows you to create a new store in an easy way.
 Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
-
-## Options _(optional)_
-| Name                    | Type                 |Default    |Description         |
-|---                      |---                   |---        |---	                |
-| `reactiveNestedObjects` | `boolean`            | true      |  By default, nested objects are proxied to allow reactivity on changes. Set to **false** if you want reactivity just on 1st-level object properties |
-| `name`<br /> _(from v2)_  | `string` (camelCase) | 'store'   |  Name of the store. It will be used to return the store object and the other hooks based on the name provided. `name must be provided in camelCase` |
-
-
 
 ## Example
 
 <Tabs groupId="code-language">
-  <TabItem value="jsx" label="JavaScript">
-
-    // store-example.ts
-
-    import { cervello } from '@cervello/react'
-
-
-    export const {
-      store,       // Reactive store object
-      useStore,    // Hook to use the store
-      useSelector, // Hook to use the selectors (part of the store)
-      reset,       // Function to reset the store 
-    } = cervello({ count: 0 })
-
-
-    /**
-    * You can also use a function to initialize the store
-    * (i.e.: initialize the store from a persisted data)
-    */
-    const { store } = cervello(() => {
-      const count = getInitialCounter()
-      return { count }
-    })
-    
-
-  </TabItem>
   <TabItem value="tsx" label="TypeScript">
 
     // store-example.ts
 
     import { cervello } from '@cervello/react'
 
-    interface Store {
-      count: number
-    }
+    type Store = { count: number }
 
     export const {
-      store,       // Reactive store object
-      useStore,    // Hook to use the store
-      useSelector, // Hook to use the selectors (part of the store)
+      store,       // object with reactive changes
+      useStore,    // Hook to be used in the components
       reset,       // Function to reset the store 
     } = cervello<Store>({ count: 0 })
 
-
-    /**
-    * You can also use a function to initialize the store
-    * (i.e.: initialize the store from a persisted data)
-    */
-    const { store } = cervello<Store>(() => {
-      const count = getInitialCounter()
-      return { count }
-    })
-
   </TabItem>
-</Tabs>
-
-
-
-## Example with options
-
-<Tabs groupId="code-language">
   <TabItem value="jsx" label="JavaScript">
 
     // store-example.ts
@@ -90,23 +36,25 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     import { cervello } from '@cervello/react'
 
 
-    const options = {
-      reactiveNestedObjects: false,
-      name: 'redirectModal'
-    }
 
     export const {
-      redirectModalStore,       // Reactive store object
-      useRedirectModalStore,    // Hook to use the store
-      useRedirectModalSelector, // Hook to use the selectors (part of the store)
-      resetRedirectModalStore,       // Function to reset the store
-    } = cervello({
-        /** initial store */
-      },
-      options
-    )
+      store,       // object with reactive changes
+      useStore,    // Hook to be used in the components
+      reset,       // Function to reset the store 
+    } = cervello({ count: 0 })
 
   </TabItem>
+</Tabs>
+
+## Options _(optional)_
+
+| Name                    | Type                               |Description         |
+|---                      |---                                 |---                 |
+| `afterChange`           | `(storeChange) => void`  |  For side side-effects. Execute a function after a change in the store. It receives the storeChange object with the information about the change. |
+
+## Example with options
+
+<Tabs groupId="code-language">
   <TabItem value="tsx" label="TypeScript">
 
     // store-example.ts
@@ -114,20 +62,42 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     import { cervello } from '@cervello/react'
     import type { CervelloOptions } from '@cervello/react'
 
-    const options: CervelloOptions = {
-      reactiveNestedObjects: false,
-      name: 'redirectModal'
-    }
 
     export const {
-      redirectModalStore,       // Reactive store object
-      useRedirectModalStore,    // Hook to use the store
-      useRedirectModalSelector, // Hook to use the selectors (part of the store)
-      resetRedirectModalStore,       // Function to reset the store
-    } = cervello({
-        /** initial store */
+      store,
+      useStore
+    } = cervello(
+      { fullName: '', email: '' },
+
+      {
+        // Execute a function after a change in the store (side-effects)
+        afterChange: (storeChange) => {
+          onSubmit: async (data) => { console.log('[SUBMIT] > data ', { data }) },
+        }
+      } satisfies CervelloOptions<Store>,
+    )
+
+  </TabItem>
+  <TabItem value="jsx" label="JavaScript">
+
+    // store-example.ts
+
+    import { cervello } from '@cervello/react'
+
+
+
+    export const {
+      store,
+      useStore
+    } = cervello(
+      { fullName: '', email: '' },
+
+      {
+        // Execute a function after a change in the store (side-effects)
+        afterChange: (storeChange) => {
+          console.log('storeChange', storeChange)
+        }
       },
-      options
     )
 
   </TabItem>

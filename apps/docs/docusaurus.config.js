@@ -7,8 +7,8 @@ const lightCodeTheme = require('prism-react-renderer/themes/vsLight')
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Cervello Reactive State',
-  tagline: '🤯 Simplest and truly reactive state manager for React',
+  title: 'Cervello',
+  tagline: '🤯 Simplest reactive state manager for React',
   url: 'https://cervello-docs.vercel.app',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -36,7 +36,7 @@ const config = {
         docs: {
           breadcrumbs: false,
           showLastUpdateTime: true,
-          sidebarCollapsed: false,
+          // sidebarCollapsed: false,
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.

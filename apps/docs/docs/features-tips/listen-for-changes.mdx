@@ -1,32 +1,30 @@
 ---
 id: listen-for-changes
-title: Listen for changes from components
+title: Listen for prop change from components
 sidebar_position: 2
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-
 ## Description
-Due to immutability and object reference persistance, cervello allows you to listen for changes with a normal `useEffect`
-in case you need to execute some function when store change
 
-
+Cervello's `useStore` hook provides a way to listen for changes in the store.<br/> You can pass a callback function to the `onChange` option to listen for changes in the store with change's information.
 
 ## Example
+
 <Tabs groupId="code-language">
-  <TabItem value="jsx" label="JavaScript">
+  <TabItem value="tsx" label="TypeScript">
 
-    // address-changer.jsx
-    import { useEffect } from 'react'
-    import { useAddressStore } from './other-example'
+    // address-changer.tsx
+    import { useStore } from './address-store'
 
-    const AddressChanger = () => {
-      const store = useAddressStore()
-
-      useEffect(() => {
-        console.log('City has changed to: ', store.address.city)
-      }, [store.address.city])
+    function AddressChanger () {
+      const store = useStore({
+        select: ['address.city'],
+        onChange: (storeChange) => {
+          console.log(`Changed from: ${storeChange.previousValue} to: ${storeChange.newValue}`)
+        }
+      })
 
       return (
         <>
@@ -40,18 +38,18 @@ in case you need to execute some function when store change
     }
 
   </TabItem>
-  <TabItem value="tsx" label="TypeScript">
+  <TabItem value="jsx" label="JavaScript">
 
     // address-changer.jsx
-    import { useEffect } from 'react'
-    import { useAddressStore } from './other-example'
+    import { useStore } from './address-store'
 
-    const AddressChanger = () => {
-      const store = useAddressStore()
-
-      useEffect(() => {
-        console.log('City has changed to: ', store.address.city)
-      }, [store.address.city])
+    function AddressChanger () {
+      const store = useStore({
+        select: ['address.city'],
+        onChange: (storeChange) => {
+          console.log(`Changed from: ${storeChange.previousValue} to: ${storeChange.newValue}`)
+        }
+      })
 
       return (
         <>
@@ -66,4 +64,3 @@ in case you need to execute some function when store change
 
   </TabItem>
 </Tabs>
-
