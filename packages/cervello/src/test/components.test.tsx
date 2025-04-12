@@ -105,6 +105,103 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(0)
     })
 
+    it('  Add a new field to the store', async () => {
+      store.newNumberField = 4
+      store.newStringField = 'new field'
+      store.newObjectField = { test: 1 }
+      store.newArrayField = ['test', 1, 2, 3]
+      store.newFunctionField = () => { return 1 }
+      store.newAsyncFunctionField = async () => { return { asyncReturn: 1 } }
+
+      expect(store.newNumberField).toEqual(4)
+      expect(store.newStringField).toEqual('new field')
+      expect(store.newObjectField).toEqual({ test: 1 })
+      expect(store.newArrayField).toEqual(['test', 1, 2, 3])
+      expect(store.newFunctionField).toBeInstanceOf(Function)
+      expect((store.newFunctionField)()).toEqual(1)
+      expect(store.newAsyncFunctionField).toBeInstanceOf(Function)
+      await expect((store.newAsyncFunctionField)()).resolves.toEqual({ asyncReturn: 1 })
+    })
+
+
+    it('  Change a property which contains a self-reference', async () => {
+      const selfReference = {
+        test: 1,
+        selfi: null,
+        content: <div>React Element test</div>,
+        // self: selfReference,
+        // globalThis,
+      } as any
+
+      selfReference.selfi = selfReference
+
+      store.selfReferenceObject = selfReference
+      store.newArrayWithSelfReference = [selfReference]
+
+      render(
+        <AppWithClick
+          onClick={(_) => {
+            store.selfReferenceObject = { test: 2, contet3: (<span className='test'>TTTT</span>) }
+            store.newArrayWithSelfReference = [{ test: 2, content2: (<span className='test'>TTTT</span>) }]
+          }}
+        />,
+      )
+
+      const button = screen.getByText('Change')
+
+      await act(async () => {
+        await userEvent.click(button)
+      })
+
+      assertNumOfRenders(1)
+    })
+
+
+    it('  Change a property with react element', async () => {
+      const valueWithReactElement = {
+        test: 1,
+        content: <div>React Element test</div>,
+      }
+
+      store.valueWithReactElement = (valueWithReactElement)
+
+      render(
+        <AppWithClick
+          onClick={(_) => {
+          }}
+        />,
+      )
+      assertNumOfRenders(0)
+
+      store.valueWithReactElement = { test: 2, content: (<span className='test'>TTTT</span>) }
+
+      await waitFor(() => {
+        assertNumOfRenders(1)
+      }, { timeout: 30 })
+
+      store.valueWithReactElement.test = 3
+
+      await waitFor(() => {
+        assertNumOfRenders(2)
+      }, { timeout: 30 })
+
+      store.valueWithReactElement.content = (<span className='test2'>TTTT</span>)
+
+      await waitFor(() => {
+        assertNumOfRenders(3)
+      }, { timeout: 30 })
+
+
+      // assertNumOfRenders(1)
+
+      const content = screen.getByTestId('content')
+
+      //
+      expect(renderedResultToString(content)).toEqual(JSON.stringify(store))
+    })
+
+
+
     it('  nonReactive field', async () => {
       const { store, useStore } = cervello({
         nestedReactive: {

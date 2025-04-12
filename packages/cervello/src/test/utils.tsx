@@ -6,7 +6,7 @@ import type { CervelloUseStoreOptions } from '../index'
 
 
 
-export const useLogRenders = (component: string): [JSX.Element | null, number] => {
+export const useLogRenders = (_component: string): [JSX.Element | null, number] => {
   const renders = useRef(-1)
 
   renders.current = renders.current + 1
@@ -73,7 +73,11 @@ export const INITIAL_VALUE = {
   },
 }
 
-export const { store, useStore, reset } = cervello(INITIAL_VALUE)
+type InitialValue = typeof INITIAL_VALUE
+
+type InitialValuePlusAnything = InitialValue & Record<string, any>
+
+export const { store, useStore, reset } = cervello<InitialValuePlusAnything>(INITIAL_VALUE)
 
 
 export function App (props: { options?: CervelloUseStoreOptions<typeof INITIAL_VALUE> }): JSX.Element {
@@ -90,7 +94,9 @@ export function App (props: { options?: CervelloUseStoreOptions<typeof INITIAL_V
 }
 
 
-export function AppWithClick ({ onClick, options }: { options?: CervelloUseStoreOptions<typeof INITIAL_VALUE>, onClick: (s: typeof store) => void }): JSX.Element {
+export function AppWithClick ({
+  onClick, options,
+}: { options?: CervelloUseStoreOptions<typeof INITIAL_VALUE>, onClick: (s: typeof store) => void }): JSX.Element {
   const [numOfRenders] = useLogRenders('App')
 
   const s = useStore(options)
