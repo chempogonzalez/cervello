@@ -1,3 +1,4 @@
+/* eslint-disable no-cond-assign */
 
 import { INTERNAL_VALUE_PROP } from '../helpers/constants'
 
@@ -23,7 +24,7 @@ export function deepClone <T> (obj: T): T {
       newObj[key] = deepClone(value)
     })
     Object.getOwnPropertySymbols(obj).forEach((symbol) => {
-      newObj[symbol] = deepClone((obj as any)[symbol])
+      newObj[symbol] = (obj as any)[symbol]
     })
   } else {
     newObj = obj
@@ -32,6 +33,100 @@ export function deepClone <T> (obj: T): T {
   return newObj as T
 }
 
+// function copyBuffer (cur: ArrayBufferView) {
+//   if (cur instanceof Buffer)
+//     return Buffer.from(cur)
+//
+//
+//   return new cur.constructor(cur.buffer.slice(), cur.byteOffset, cur.length)
+// }
+
+
+// INFO: From `rfdc` (really-fast-deep-clone) package for faster cloning taking care of circular references
+export function deepClone2 <T> (obj: T): T {
+  const refs: Array<any> = []
+  const refsNew: Array<any> = []
+
+  const constructorHandlers = new Map()
+
+  constructorHandlers.set(Date, (o: string | number | Date) => new Date(o))
+  constructorHandlers.set(Map, (o: Iterable<unknown> | ArrayLike<unknown>, fn: any) => new Map(cloneArray(Array.from(o), fn)))
+  constructorHandlers.set(Set, (o: Iterable<unknown> | ArrayLike<unknown>, fn: any) => new Set(cloneArray(Array.from(o), fn)))
+
+  let handler = null
+
+  return clone(obj)
+
+  function cloneArray (a: any, fn: any): any {
+    const keys = Object.keys(a)
+    const a2 = new Array(keys.length) as any
+
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i]
+      const cur = a[k]
+
+      if (typeof cur !== 'object' || cur === null) {
+        a2[k] = cur
+      } else if (cur.constructor !== Object && (handler = constructorHandlers.get(cur.constructor))) {
+        a2[k] = handler(cur, fn)
+      // } else if (ArrayBuffer.isView(cur)) {
+      //   a2[k] = copyBuffer(cur)
+      } else {
+        const index = refs.indexOf(cur)
+
+        if (index !== -1)
+          a2[k] = refsNew[index]
+        else
+          a2[k] = fn(cur)
+      }
+    }
+
+    return a2
+  }
+
+  function clone (o: any): any {
+    if (typeof o !== 'object' || o === null) return o
+    if (Array.isArray(o)) return cloneArray(o, clone)
+    if (o.constructor !== Object && (handler = constructorHandlers.get(o.constructor)))
+      return handler(o, clone)
+
+    const o2 = {} as any
+
+    refs.push(o)
+    refsNew.push(o2)
+
+
+    Object.getOwnPropertySymbols(o).forEach((symbol) => {
+      o2[symbol] = (o)[symbol]
+    })
+
+    for (const k in o) {
+      if (!Object.hasOwnProperty.call(o, k)) continue
+      const cur = o[k]
+
+
+      if (typeof cur !== 'object' || cur === null) {
+        o2[k] = cur
+      } else if (cur.constructor !== Object && (handler = constructorHandlers.get(cur.constructor))) {
+        o2[k] = handler(cur, clone)
+      // } else if (ArrayBuffer.isView(cur)) {
+      //   o2[k] = copyBuffer(cur)
+      } else {
+        const i = refs.indexOf(cur)
+
+        if (i !== -1)
+          o2[k] = refsNew[i]
+        else
+          o2[k] = clone(cur)
+      }
+    }
+    refs.pop()
+    refsNew.pop()
+
+
+    return o2
+  }
+}
 
 /**
  * Guard to check is variable is an object

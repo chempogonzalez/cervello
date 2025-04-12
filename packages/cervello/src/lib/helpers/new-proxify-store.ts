@@ -41,7 +41,13 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       const isRootTarget = Object.hasOwn(targetObject, ROOT_VALUE)
       const target = isRootTarget ? targetObject[ROOT_VALUE] : targetObject
 
-      if (propName === 'toJSON') return () => target
+      if (propName === 'toJSON') {
+        return () => {
+          // Remove circular references before stringifying
+          // to prevent JSON.stringify from failing
+          return removeCircularReferences(target)
+        }
+      }
 
       if (propName === '$value') return deepClone(target)
 
@@ -88,6 +94,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         const previousValue = parentObject[ROOT_VALUE]
 
         if (value === previousValue) return true
+
         if (JSON.stringify(value) === JSON.stringify(parentObject[ROOT_VALUE])) return true
 
         if (fieldPath !== 'root') {
@@ -121,7 +128,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
 
       // New object values, check if the field has already a proxy created to use it instead of reacreating a new instance
-      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol] && previousValue._$fieldPath)
+      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol] && previousValue?._$fieldPath)
         previousValue.$value = value
       else
         Reflect.set(realInnerObject, key, value, realInnerObject)
@@ -162,4 +169,40 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
 function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {
   return isObject(value) && !isValidElement(value) && !(value as any)[nonReactiveObjectSymbol]
+}
+
+
+function removeCircularReferences (obj: any): any {
+  const seen = new WeakSet()
+
+  function traverse (value: any): any {
+    if (value && typeof value === 'object') {
+      // If the object has already been seen, it's a circular reference
+      if (seen.has(value))
+        return null
+
+      // Add the object to the WeakSet
+      seen.add(value)
+
+      // Handle arrays
+      if (Array.isArray(value))
+        return value.map(traverse)
+
+
+      // Handle objects
+      const result: any = {}
+
+      for (const key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key))
+          result[key] = traverse(value[key])
+      }
+
+      return result
+    }
+
+    // Return primitive values as-is
+    return value
+  }
+
+  return traverse(obj)
 }
