@@ -1,7 +1,7 @@
 {
   "name": "@cervello/react",
   "type": "module",
-  "version": "5.0.0-beta.2",
+  "version": "5.0.0-beta.3",
   "description": "🤯 Simple, reactive, tiny and performant state-management library",
   "author": "Chempo",
   "license": "MIT",
