@@ -87,7 +87,7 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
       if (!isInitialValueSet.current && initialValue && initialValue !== proxiedStore) {
         isInitialValueSet.current = true;
-        (proxiedStore as any).$$value = initialValue
+        (proxiedStore as any).$value = initialValue
       }
 
       const selectFieldPaths = useRef(

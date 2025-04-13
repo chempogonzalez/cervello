@@ -44,7 +44,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       if (propName === 'toJSON') {
         return () => {
           // Remove circular references before stringifying
-          // to prevent JSON.stringify from failing
+          // to prevent JSON.stringify(storeProxy) from failing
           return removeCircularReferences(target)
         }
       }
@@ -109,7 +109,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
         if (value === previousValue) return true
 
-        if (JSON.stringify(value) === JSON.stringify(parentObject[ROOT_VALUE])) return true
+        if (safeStringify(value) === safeStringify(previousValue)) return true
+        // if (JSON.stringify(value) === JSON.stringify(previousValue)) return true
 
         if (fieldPath !== 'root') {
           (parentObject as any)[ROOT_VALUE] = value
@@ -203,6 +204,19 @@ function isValidReactiveObject <T extends Record<string, any>> (value: T): boole
   return isObject(value) && !isValidElement(value) && !(value as any)[nonReactiveObjectSymbol]
 }
 
+function safeStringify (obj: any): string {
+  // use removeCircularReferences to avoid circular references
+  const cleanedObj = removeCircularReferences(obj)
+
+  return JSON.stringify(
+    cleanedObj,
+    (_key, value) => {
+      if (isValidElement(value))
+        return { props: safeStringify(value.props), type: value.type }
+
+      return value
+    })
+}
 
 function removeCircularReferences (obj: any): any {
   const seen = new WeakSet()
