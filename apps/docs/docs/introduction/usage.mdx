@@ -8,8 +8,8 @@ import TabItem from '@theme/TabItem';
 
 ## Description
 
-The `cervello` function allows you to create a new store in an easy way.
-Just set the initial value _`(the type will be inferred based on this value)`_ and you have it
+The `cervello` function allows you to create a new store in an easy way.<br/>
+Just set the initial value and start using it in your components.
 
 ## Example
 
@@ -23,7 +23,7 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
     type Store = { count: number }
 
     export const {
-      store,       // object with reactive changes
+      store,       // Magic object to get/set values from anywhere
       useStore,    // Hook to be used in the components
       reset,       // Function to reset the store 
     } = cervello<Store>({ count: 0 })
@@ -38,7 +38,7 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
 
 
     export const {
-      store,       // object with reactive changes
+      store,       // Magic object to get/set values from anywhere
       useStore,    // Hook to be used in the components
       reset,       // Function to reset the store 
     } = cervello({ count: 0 })
@@ -72,7 +72,7 @@ Just set the initial value _`(the type will be inferred based on this value)`_ a
       {
         // Execute a function after a change in the store (side-effects)
         afterChange: (storeChange) => {
-          onSubmit: async (data) => { console.log('[SUBMIT] > data ', { data }) },
+          console.log('storeChange', storeChange)
         }
       } satisfies CervelloOptions<Store>,
     )

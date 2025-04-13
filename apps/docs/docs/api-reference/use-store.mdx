@@ -56,10 +56,10 @@ function ExampleComponent () {
 
 | Name                    | Type                               |Description         |
 |---                      |---                                 |---                 |
-| `initialValue`          | `Function`<br/> () => `Object`     | Initialize the store with a value like React's `useState` hook. <br/>It doesn't produce a re-render on init<br/>_(It works on server-side)_
-| `select`                | `Array<string>` or `Function`<br/> () => `Array<string>` | Select the properties you want to listen to. <br/>It will only re-render the component if the selected properties change.
-| `setValueOnMount`       | `Async Function`<br/> () => `Promise<Object>` |  Set full store value on initial render |
-| `onChange`            | `Function`<br /> (storeChange: `Object`) => void |  Callback function that will be called when the store changes with change information
+| `initialValue`          | `(store) => Object`     | Initialize the store synchronously with a value like React's `useState` hook. <br/>It doesn't produce a re-render on init<br/>_(It works on server-side)_
+| `select`                | `Array<string>` or <br/> <br/> () => `Array<string>` | Select the properties you want to listen to. <br/>It will only re-render the component if the selected properties change.
+| `setValueOnMount`       | (store) => `Promise<Object>` |  Set full store value on initial render |
+| `onChange`            | (storeChange) => `void` |  Callback function that will be called when the store changes with the Change Information
 
 ## Example with options
 
