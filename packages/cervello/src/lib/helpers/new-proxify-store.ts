@@ -1,7 +1,7 @@
 import { isValidElement } from 'react'
 
 import { nonReactiveObjectSymbol } from '../../types/shared'
-import { deepClone, isObject } from '../utils/object'
+import { isObject } from '../utils/object'
 
 import type { StoreChange } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
@@ -64,7 +64,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return (propertyValue as () => any).bind(receiver)
 
 
-      // Check if it's correct to be a reactive object & is not a circular reference or the same object
+      // Check if it's correct to be a reactive object
+      // & is not a circular reference or the same object
       if (isValidReactiveObject(propertyValue) && propertyValue !== target) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
@@ -95,8 +96,9 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       const value = newValue
       const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
 
+      // INFO: Internal only.
+      // This is used to set the value of the store without notifying the store
       if (isRootTarget && key === '$$value') {
-        // Change value without notifying the store
         (parentObject as any)[ROOT_VALUE] = value
 
         return true
@@ -135,8 +137,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       const previousValue = Reflect.get(realInnerObject, key, receiver)
 
 
-      if (previousValue === value)
-        return true
+      if (previousValue === value) return true
 
 
       // New object values, check if the field has already a proxy created to use it instead of reacreating a new instance
@@ -212,15 +213,12 @@ function removeCircularReferences (obj: any): any {
       if (seen.has(value))
         return null
 
-      // Add the object to the WeakSet
       seen.add(value)
 
-      // Handle arrays
       if (Array.isArray(value))
         return value.map(traverse)
 
 
-      // Handle objects
       const result: any = {}
 
       for (const key in value) {

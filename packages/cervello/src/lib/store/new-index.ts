@@ -65,7 +65,7 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     afterChange,
   } = options ?? {}
 
-  const clonedInitialValue = deepClone(initialValue)
+  const clonedInitialValue = (initialValue)
   const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
 
   const proxiedStore = proxifyStore(

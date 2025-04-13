@@ -297,6 +297,7 @@ describe('[_CERVELLO_]', () => {
             initialValue: s => ({ ...s, [dynamicSchemaTest]: [{ content: (<span>TT</span>), selfReference }] }),
           })
 
+          // TEST:  to avoid infinite loop due to the use of `useStore` inside the component
           useEffect(() => {
             console.log('initialValue change')
           }, [s])
@@ -652,6 +653,39 @@ describe('[_CERVELLO_]', () => {
       await waitFor(() => {
         assertNumOfRenders(2)
         expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE))
+      })
+    })
+
+
+    it('  Reset to initial-state for nested objects', async () => {
+      render(<AppWithClick onClick={(s: typeof store) => { s.links.nested.test = 1_000 }} />)
+      const content = screen.getByTestId('content')
+      const button = screen.getByText('Change')
+
+
+      assertNumOfRenders(0)
+
+      await act(async () => {
+        await userEvent.click(button)
+      })
+
+      assertNumOfRenders(1)
+
+      const renderedResultObj = renderedResultToObject(content)
+
+      const changedValue = renderedResultObj.links.nested.test
+
+      expect(changedValue).toEqual(1_000)
+
+      reset()
+
+      await waitFor(() => {
+        assertNumOfRenders(2)
+        const renderedResultObjAfterReset = renderedResultToObject(content)
+
+        const valueAfterReset = renderedResultObjAfterReset.links.nested.test
+
+        expect(valueAfterReset).toEqual(INITIAL_VALUE.links.nested.test)
       })
     })
   })
