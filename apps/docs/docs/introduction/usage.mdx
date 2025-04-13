@@ -31,7 +31,7 @@ Just set the initial value and start using it in your components.
   </TabItem>
   <TabItem value="jsx" label="JavaScript">
 
-    // store-example.ts
+    // store-example.js
 
     import { cervello } from '@cervello/react'
 
@@ -80,7 +80,7 @@ Just set the initial value and start using it in your components.
   </TabItem>
   <TabItem value="jsx" label="JavaScript">
 
-    // store-example.ts
+    // store-example.js
 
     import { cervello } from '@cervello/react'
 
@@ -101,4 +101,48 @@ Just set the initial value and start using it in your components.
     )
 
   </TabItem>
+</Tabs>
+
+## Non-Reactive properties
+
+Cervello allows you to create non-reactive properties in the store.<br/>
+By this way you can have a mixed store with reactive and non-reactive properties.<br/>
+You can use them to store values that don't need to be reactive or if they are created by external libraries.<br/>
+
+<Tabs groupId="code-language">
+  <TabItem value="tsx" label="TypeScript">
+
+    // store-example.ts
+    import { cervello, nonReactive } from '@cervello/react'
+
+
+    export const {
+      store,
+      useStore
+    } = cervello({
+      fullName: '',
+      email: ''
+
+      // Wrap the non-reactive object/properties with the nonReactive function
+      complexObject: nonReactive(/* ... */),
+    })
+  </TabItem>
+  <TabItem value="jsx" label="JavaScript">
+
+    // store-example.js
+    import { cervello, nonReactive } from '@cervello/react'
+
+
+    export const {
+      store,
+      useStore
+    } = cervello({
+      fullName: '',
+      email: ''
+
+      // Wrap the non-reactive object/properties with the nonReactive function
+      complexObject: nonReactive(/* ... */),
+    })
+  </TabItem>
+
 </Tabs>
