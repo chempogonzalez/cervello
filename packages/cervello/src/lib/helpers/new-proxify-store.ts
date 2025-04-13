@@ -49,7 +49,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         }
       }
 
-      if (propName === '$value') return deepClone(target)
+      if (propName === '$value') {
+        // return deepClone(target)
+        // return getUnproxiedObject(target)
+        return target
+      }
 
       const propertyValue = Reflect.get(target, propName, receiver)
 
@@ -60,7 +64,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         return (propertyValue as () => any).bind(receiver)
 
 
-      if (isValidReactiveObject(propertyValue)) {
+      // Check if it's correct to be a reactive object & is not a circular reference or the same object
+      if (isValidReactiveObject(propertyValue) && propertyValue !== target) {
         const newNestedFieldPath = `${fieldPath}.${propName}`
 
 
@@ -89,6 +94,13 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
       const value = newValue
       const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
+
+      if (isRootTarget && key === '$$value') {
+        // Change value without notifying the store
+        (parentObject as any)[ROOT_VALUE] = value
+
+        return true
+      }
 
       if (isRootTarget && key === '$value') {
         const previousValue = parentObject[ROOT_VALUE]
@@ -165,6 +177,25 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
   })
 }
+
+//
+// function getUnproxiedObject (obj: any): any {
+//   if (obj && typeof obj === 'object') {
+//     if (obj[ROOT_VALUE]?.[ROOT_VALUE]) return '[Circular reference]'
+//
+//     // Check if the object is a proxy
+//     if (obj[ROOT_VALUE])
+//       return getUnproxiedObject(obj[ROOT_VALUE])
+//
+//
+//     // If it's not a proxy, return the object itself
+//     return obj
+//   }
+//
+//   // If it's not an object, return it as is
+//   return obj
+// }
+
 
 
 function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {

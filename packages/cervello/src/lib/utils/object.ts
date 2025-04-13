@@ -10,7 +10,7 @@ import { INTERNAL_VALUE_PROP } from '../helpers/constants'
  * @param obj - base object to be cloned
  * @returns new cloned object with new reference
  */
-export function deepClone <T> (obj: T): T {
+export function deepClone2 <T> (obj: T): T {
   if (!obj || typeof obj !== 'object')
     return obj
 
@@ -43,7 +43,7 @@ export function deepClone <T> (obj: T): T {
 
 
 // INFO: From `rfdc` (really-fast-deep-clone) package for faster cloning taking care of circular references
-export function deepClone2 <T> (obj: T): T {
+export function deepClone <T> (obj: T): T {
   const refs: Array<any> = []
   const refsNew: Array<any> = []
 

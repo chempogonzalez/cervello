@@ -82,12 +82,12 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       proxiedStore.$value = deepClone(initialValue)
     },
     useStore: (options) => {
-      const initialValue = options?.initialValue?.apply(proxiedStore, [proxiedStore.$value])
+      const initialValue = options?.initialValue?.(proxiedStore.$value)
       const isInitialValueSet = useRef(false)
 
       if (!isInitialValueSet.current && initialValue && initialValue !== proxiedStore) {
-        isInitialValueSet.current = true
-        proxiedStore.$value = initialValue
+        isInitialValueSet.current = true;
+        (proxiedStore as any).$$value = initialValue
       }
 
       const selectFieldPaths = useRef(

@@ -1,5 +1,5 @@
 
-import React, { } from 'react'
+import React, { useEffect } from 'react'
 import {
   describe,
   it,
@@ -271,16 +271,52 @@ describe('[_CERVELLO_]', () => {
       assertNumOfRenders(0)
       expect(renderedResultToString(content)).toEqual(JSON.stringify(INITIAL_VALUE))
     })
+
     describe('  (initialValue)', async () => {
-      it('  First render with initial value from hook function', async () => {
+      it('  First render with initial value from hook function (with circular ref + react elements)', async () => {
         // act(() => {
-        render(<App options={{ initialValue: () => ({ custom: true }) as any }} />)
-        // })
+        const selfReference = {
+          test: 1,
+          selfi: null,
+          content: <div>React Element test</div>,
+        } as any
+
+        selfReference.selfi = selfReference
+
+        const { useStore } = cervello<any>({
+          schemaTest: [{ selfReference }],
+          selfReference,
+        })
+
+
+        const RenderSchemaTest = () => {
+          const [numOfRenders] = useLogRenders('App')
+
+          const dynamicSchemaTest = 'schemaTest'
+          const s = useStore({
+            initialValue: s => ({ ...s, [dynamicSchemaTest]: [{ content: (<span>TT</span>), selfReference }] }),
+          })
+
+          useEffect(() => {
+            console.log('initialValue change')
+          }, [s])
+
+
+          return (
+            <div className='App'>
+              {numOfRenders}
+              <pre data-testid='content'>{JSON.stringify(s)}</pre>
+              <pre data-testid='schema'>{s.schemaTest?.map(s => (s.content))}</pre>
+            </div>
+          )
+        }
+
+        render(<RenderSchemaTest />)
+
         const content = screen.getByTestId('content')
 
-
         assertNumOfRenders(0)
-        expect(renderedResultToString(content)).toEqual(JSON.stringify({ custom: true }))
+        expect(renderedResultToString(content)).toContain('"type":"span"')
 
         await sleep(100)
         // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
