@@ -17,7 +17,7 @@ export type CacheableSubject<T> = {
 } & Observer<T>
 
 
-const WITH_FLUSHING = true
+// const WITH_FLUSHING = true
 
 export function createCacheableSubject<T> (defaultValue: T, getValueOnSubscribe = false): CacheableSubject<T> {
   let isFlushing = false
@@ -31,11 +31,11 @@ export function createCacheableSubject<T> (defaultValue: T, getValueOnSubscribe 
   const next = (newValue: T): void => {
     value = newValue
 
-    if (!WITH_FLUSHING) {
-      observerList.forEach((o) => { o.next(newValue) })
-
-      return
-    }
+    // if (!WITH_FLUSHING) {
+    //   observerList.forEach((o) => { o.next(newValue) })
+    //
+    //   return
+    // }
 
     itemsToFlush.push(newValue)
     // observerList.forEach((o) => { o.next(newValue) })
@@ -74,4 +74,3 @@ export function createCacheableSubject<T> (defaultValue: T, getValueOnSubscribe 
     unSubscribeAll,
   }
 }
-

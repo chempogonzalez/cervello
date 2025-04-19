@@ -1,7 +1,5 @@
-import { isValidElement } from 'react'
 
-import { nonReactiveObjectSymbol } from '../../types/shared'
-import { isObject } from '../utils/object'
+import { isReactElement, isValidReactiveObject } from '../utils/object'
 
 import type { StoreChange } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
@@ -36,29 +34,34 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
   return new Proxy(objectWithRootValue, {
     get (targetObject, propName, receiver) {
+      // INFO: !Internal only.
+      // Used to get the fieldPath of the object (it means it's a proxified object)
       if (propName === '_$fieldPath') return fieldPath
 
       const isRootTarget = Object.hasOwn(targetObject, ROOT_VALUE)
       const target = isRootTarget ? targetObject[ROOT_VALUE] : targetObject
 
+
+      // Called when the object is converted to JSON or string (i.e. JSON.stringify)
       if (propName === 'toJSON') {
         return () => {
-          // Remove circular references before stringifying
-          // to prevent JSON.stringify(storeProxy) from failing
-          return removeCircularReferences(target)
+          // Remove react-elements with circular which have circular references
+          // before stringifying to prevent JSON.stringify(storeProxy) from failing
+          return safeToJson(target)
+          // return removeCircularReferences(target)
         }
       }
 
+      // Get the whole store value without the proxy
       if (propName === '$value') {
-        // return deepClone(target)
         // return getUnproxiedObject(target)
         return target
       }
 
+
       const propertyValue = Reflect.get(target, propName, receiver)
 
       if (typeof propName === 'symbol') return propertyValue
-
 
       if (typeof propertyValue === 'function')
         return (propertyValue as () => any).bind(receiver)
@@ -67,16 +70,18 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       // Check if it's correct to be a reactive object
       // & is not a circular reference or the same object
       if (isValidReactiveObject(propertyValue) && propertyValue !== target) {
-        const newNestedFieldPath = `${fieldPath}.${propName}`
+        // const newNestedFieldPath = `${fieldPath}.${propName}`
 
+        // If it's already a proxified object, return it
+        // if (propertyValue._$fieldPath === newNestedFieldPath) return propertyValue
+        if (propertyValue._$fieldPath) return propertyValue
 
-        if (propertyValue._$fieldPath === newNestedFieldPath) return propertyValue
-
+        // Create a new proxified object
         const proxiedNestedObject = proxifyStore(
           store$$ as any,
           propertyValue,
           {
-            nestedFieldPath: newNestedFieldPath,
+            nestedFieldPath: `${fieldPath}.${propName}`,
             parentObjectToProxify: opts.parentObjectToProxify ?? target,
             // beforeChange: opts.beforeChange,
             afterChange: opts.afterChange,
@@ -96,8 +101,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       const value = newValue
       const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
 
-      // INFO: Internal only.
-      // This is used to set the value of the store without notifying the store
+      // INFO: !Internal only.
+      // Used to set the value of the store without notifying the store
       if (isRootTarget && key === '$$value') {
         (parentObject as any)[ROOT_VALUE] = value
 
@@ -142,7 +147,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
 
       // New object values, check if the field has already a proxy created to use it instead of reacreating a new instance
-      if (isObject(value) && !isValidElement(value) && !value[nonReactiveObjectSymbol] && previousValue?._$fieldPath)
+      if (isValidReactiveObject(value) && previousValue?._$fieldPath)
         previousValue.$value = value
       else
         Reflect.set(realInnerObject, key, value, realInnerObject)
@@ -199,53 +204,83 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 // }
 
 
-
-function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {
-  return isObject(value) && !isValidElement(value) && !(value as any)[nonReactiveObjectSymbol]
-}
-
 function safeStringify (obj: any): string {
   // use removeCircularReferences to avoid circular references
-  const cleanedObj = removeCircularReferences(obj)
+  // const cleanedObj = removeCircularReferences(obj)
 
   return JSON.stringify(
-    cleanedObj,
+    obj,
     (_key, value) => {
-      if (isValidElement(value))
-        return { props: safeStringify(value.props), type: value.type }
+      if (Array.isArray(value)) return value.map(i => safeStringify(i))
+
+      if (isReactElement(value)) {
+        // console.log('React element detected', value)
+
+        return { props: safeStringify(value.props), type: typeof value.type === 'string' ? value.type : '' }
+      }
+
+      if (globalThis?.HTMLElement && value instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: value.innerHTML }
+
+      // console.log('Value', value)
 
       return value
     })
 }
 
-function removeCircularReferences (obj: any): any {
-  const seen = new WeakSet()
 
-  function traverse (value: any): any {
-    if (value && typeof value === 'object') {
-      // If the object has already been seen, it's a circular reference
-      if (seen.has(value))
-        return null
+function safeToJson (obj: any): Record<string, any> {
+  const o: Record<string, any> = {}
 
-      seen.add(value)
+  if (typeof obj !== 'object' || obj == null)
+    return obj
 
-      if (Array.isArray(value))
-        return value.map(traverse)
+  if (Array.isArray(obj))
+    return obj.map(item => safeToJson(item))
 
+  if (isReactElement(obj))
+    return { props: safeToJson(obj.props), type: typeof obj.type === 'string' ? obj.type : '' }
 
-      const result: any = {}
+  if (globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: obj.innerHTML }
 
-      for (const key in value) {
-        if (Object.prototype.hasOwnProperty.call(value, key))
-          result[key] = traverse(value[key])
-      }
+  Object.entries(obj).forEach(([key, v]) => {
+    o[key] = safeToJson(v)
+  })
 
-      return result
-    }
-
-    // Return primitive values as-is
-    return value
-  }
-
-  return traverse(obj)
+  return o
 }
+
+
+// function removeCircularReferences (obj: any): any {
+//   const seen = new WeakSet()
+//
+//   function traverse (value: any): any {
+//     if (value && typeof value === 'object') {
+//       // If the object has already been seen, it's a circular reference
+//       if (seen.has(value))
+//         return null
+//
+//       seen.add(value)
+//
+//       if (Array.isArray(value))
+//         return value.map(traverse)
+//
+//
+//       const result: any = {}
+//
+//       for (const key in value) {
+//         if (Object.prototype.hasOwnProperty.call(value, key)) {
+//           if (key === '_owner' && value.$$typeof) continue
+//
+//           result[key] = traverse(value[key])
+//         }
+//       }
+//
+//       return result
+//     }
+//
+//     // Return primitive values as-is
+//     return value
+//   }
+//
+//   return traverse(obj)
+// }

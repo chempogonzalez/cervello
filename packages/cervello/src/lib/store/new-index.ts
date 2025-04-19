@@ -21,7 +21,7 @@ export type CervelloOptions<StoreValue extends Record<string, any>> = {
 }
 
 export type CervelloUseStoreOptions<StoreValue extends Record<string, any>> = {
-  initialValue?: (currentStore: StoreValue) => StoreValue,
+  initialValue?: (currentStore: StoreValue) => StoreValue | null,
   setValueOnMount?: (currentStore: StoreValue) => Promise<StoreValue>,
   select?:
   | Array<FieldPath<StoreValue>>

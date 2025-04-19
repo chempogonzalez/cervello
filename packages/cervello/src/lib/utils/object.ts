@@ -1,5 +1,6 @@
 /* eslint-disable no-cond-assign */
 
+import { nonReactiveObjectSymbol } from '../../types/shared'
 import { INTERNAL_VALUE_PROP } from '../helpers/constants'
 
 
@@ -10,7 +11,7 @@ import { INTERNAL_VALUE_PROP } from '../helpers/constants'
  * @param obj - base object to be cloned
  * @returns new cloned object with new reference
  */
-export function deepClone2 <T> (obj: T): T {
+export function deepClone <T> (obj: T): T {
   if (!obj || typeof obj !== 'object')
     return obj
 
@@ -43,7 +44,7 @@ export function deepClone2 <T> (obj: T): T {
 
 
 // INFO: From `rfdc` (really-fast-deep-clone) package for faster cloning taking care of circular references
-export function deepClone <T> (obj: T): T {
+export function deepClone2 <T> (obj: T): T {
   const refs: Array<any> = []
   const refsNew: Array<any> = []
 
@@ -139,6 +140,18 @@ export const isObject = (obj: unknown): obj is Record<string | symbol, unknown> 
   && !Array.isArray(obj)
 )
 
+
+export const isReactElement = (obj: unknown): boolean => {
+  if (!isObject(obj)) return false
+
+  return !!(obj.$$typeof)
+}
+
+
+
+export function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {
+  return isObject(value) && !isReactElement(value) && !(value as any)[nonReactiveObjectSymbol]
+}
 
 
 
