@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   describe,
   it,
@@ -40,14 +40,13 @@ const reRenderNum = (num: number) => num === 0
   ? 'First render'
   : `re-render: ${num}`
 
-const assertNumOfRenders = (num: number) => {
-  const renders = screen.getByTestId('renders')
+const assertNumOfRenders = (num: number, id = '') => {
+  const renders = screen.getByTestId(id ? `renders-${id}` : 'renders')
   // console.log({ renders: renders.textContent })
 
   expect(renders.textContent).toEqual(reRenderNum(num))
 }
 /** --------------- [end] ASSERT HELPERS ---------------- */
-
 
 
 beforeEach(() => {
@@ -133,7 +132,7 @@ describe('[_CERVELLO_]', () => {
         // globalThis,
       } as any
 
-      selfReference.selfi = selfReference
+      // selfReference.selfi = nonReactive(selfReference)
 
       store.selfReferenceObject = selfReference
       store.newArrayWithSelfReference = [selfReference]
@@ -273,19 +272,15 @@ describe('[_CERVELLO_]', () => {
     })
 
     describe('  (initialValue)', async () => {
-      it('  First render with initial value from hook function (with circular ref + react elements)', async () => {
-        // act(() => {
-        const selfReference = {
+      it('  First render with initial value from hook function (with react elements)', async () => {
+        const storeInitial = {
           test: 1,
-          selfi: null,
-          content: <div>React Element test</div>,
+          content: (<div>React Element test</div>),
         } as any
 
-        selfReference.selfi = selfReference
-
         const { useStore } = cervello<any>({
-          schemaTest: [{ selfReference }],
-          selfReference,
+          schemaTest: [{ storeInitial }],
+          storeInitial,
         })
 
 
@@ -294,7 +289,7 @@ describe('[_CERVELLO_]', () => {
 
           const dynamicSchemaTest = 'schemaTest'
           const s = useStore({
-            initialValue: s => ({ ...s, [dynamicSchemaTest]: [{ content: (<span>TT</span>), selfReference }] }),
+            initialValue: s => ({ ...s, [dynamicSchemaTest]: [{ content: (<span>TT</span>), storeInitial }] }),
           })
 
           // TEST:  to avoid infinite loop due to the use of `useStore` inside the component
@@ -307,23 +302,185 @@ describe('[_CERVELLO_]', () => {
             <div className='App'>
               {numOfRenders}
               <pre data-testid='content'>{JSON.stringify(s)}</pre>
-              <pre data-testid='schema'>{s.schemaTest?.map(s => (s.content))}</pre>
+              <pre data-testid='schema'>{s.schemaTest?.map((s, idx) => (<span key={idx}>{s.content}</span>))}</pre>
             </div>
           )
         }
 
-        render(<RenderSchemaTest />)
+        const OtherComponent = () => {
+          const [numOfRenders] = useLogRenders('other')
+          const s = useStore()
+
+          return (
+            <section className='Other'>
+              {numOfRenders}
+              <pre data-testid='content-2'>{JSON.stringify(s)}</pre>
+              <pre data-testid='schema-2'>{s.schemaTest?.map(s => (s.content))}</pre>
+            </section>
+          )
+        }
+
+        render(
+          <>
+            <RenderSchemaTest />
+            <OtherComponent />
+          </>,
+        )
 
         const content = screen.getByTestId('content')
+        const otherContent = screen.getByTestId('content-2')
 
         assertNumOfRenders(0)
+        assertNumOfRenders(0, 'other')
         expect(renderedResultToString(content)).toContain('"type":"span"')
+        console.log({ otherContent: renderedResultToString(otherContent) })
+        expect(renderedResultToString(otherContent)).toContain('"type":"span"')
 
         await sleep(100)
         // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
         assertNumOfRenders(0)
       })
+
+
+
+
+
+
+
+      it('  Use initialValue (with react elements) in parent and child. Check sync and not over-rendering', async () => {
+        const Container = (props) => {
+          return (<div>{props.children}</div>)
+        }
+
+        const storeInitial = {
+          test: 1,
+          content: render(<Container><div>React Element test</div></Container>).container,
+        } as any
+
+        const { store: s, useStore } = cervello<any>({
+          schemaTest: [{ storeInitial }],
+          storeInitial,
+        })
+
+
+        // INFO: ===========================================
+        const RenderSchemaTest = () => {
+          const [numOfRenders] = useLogRenders('App')
+          const [forceReRender, setForceReRender] = useState(0)
+
+          const dynamicSchemaTest = 'schemaTest'
+          const s = useStore({
+            initialValue: (s) => {
+              // console.log('** Executing initialValue "REnder" (Function)\n\n')
+
+              return { ...s, [dynamicSchemaTest]: [{ content: (<Container><section>Render content</section></Container>), storeInitial }] }
+            },
+          })
+
+          // TEST:  to avoid infinite loop due to the use of `useStore` inside the component
+          useEffect(() => {
+            // console.log('__Render Component useEffect__')
+            if (forceReRender < 10)
+              setForceReRender(x => x + 1)
+          }, [forceReRender, s])
+
+
+          return (
+            <div className='App'>
+              {numOfRenders}
+              <pre data-testid='content'>{JSON.stringify(s)}</pre>
+              <pre data-testid='schema'>{s.schemaTest?.map((s, idx) => (<span key={idx}>{s.content}</span>))}</pre>
+            </div>
+          )
+        }
+        // INFO: ===========================================
+
+
+
+        // INFO: ===========================================
+        const OtherComponent = () => {
+          const [numOfRenders] = useLogRenders('other')
+          const [shouldRender, setShouldRender] = React.useState(false)
+          const [forceReRender, setForceReRender] = useState(0)
+
+          const dynamicSchemaTest = 'schemaTest'
+          const s = useStore({
+            initialValue: (s) => {
+              // console.log('** Executing initialValue "Other" (Function)\n\n')
+
+              return { ...s, [dynamicSchemaTest]: [{ content: (<span>Other content</span>), storeInitial }] }
+            },
+
+          })
+
+          useEffect(() => {
+            // console.log('other component useEffect')
+            if (forceReRender < 10) {
+              setTimeout(() => {
+                setForceReRender(x => x + 1)
+              }, 20)
+            }
+          }, [s, forceReRender])
+
+          return (
+            <section className='Other'>
+              {numOfRenders}
+              <pre data-testid='content-2'>{JSON.stringify(s)}</pre>
+              <pre data-testid='schema-2'>{React.Children.toArray(s.schemaTest?.map(s => (s.content)))}</pre>
+              <button onClick={() => { setShouldRender(!shouldRender) }}>Change</button>
+              { !!shouldRender && <RenderSchemaTest />}
+            </section>
+          )
+        }
+        // INFO: ===========================================
+
+
+
+        await act(async () => {
+          render(
+            <Container>
+              <OtherComponent />
+            </Container>,
+          )
+        })
+
+        console.log(s.$value)
+        const otherContent = screen.getByTestId('content-2')
+
+        await waitFor(() => {
+          assertNumOfRenders(10, 'other')
+        }, { timeout: 250 })
+
+        expect(renderedResultToString(otherContent)).toContain('Other content')
+        expect(renderedResultToString(otherContent)).toContain('React Element test')
+
+        await sleep(100)
+
+        // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
+        assertNumOfRenders(10, 'other')
+
+
+        const button = screen.getByText('Change')
+
+        // await sleep(1_000)
+        await act(async () => {
+          await userEvent.click(button)
+        })
+
+        await waitFor(() => {
+          assertNumOfRenders(12, 'other')
+        }, { timeout: 10 })
+
+        expect(renderedResultToString(otherContent)).toContain('Render content')
+      })
     })
+
+
+
+
+
+
+
 
     describe('  (select)', async () => {
       it('  Change other value different from selected fields', async () => {
