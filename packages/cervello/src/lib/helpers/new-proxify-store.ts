@@ -1,5 +1,5 @@
 
-import { isReactElement, isValidReactiveObject } from '../utils/object'
+import { deepClone, isReactElement, isValidReactiveObject } from '../utils/object'
 
 import type { StoreChange } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
@@ -52,11 +52,11 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         }
       }
 
-      // Get the whole store value without the proxy
-      if (propName === '$value') {
-        // return getUnproxiedObject(target)
-        return target
-      }
+      // Get the whole store value without proxies
+      if (propName === '$value')
+        return deepClone(target)
+        // return target
+
 
 
       const propertyValue = Reflect.get(target, propName, receiver)
@@ -104,7 +104,18 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       // INFO: !Internal only.
       // Used to set the value of the store without notifying the store
       if (isRootTarget && key === '$$value') {
-        (parentObject as any)[ROOT_VALUE] = value
+        const previousValue = parentObject[ROOT_VALUE];
+
+        (parentObject as any)[ROOT_VALUE] = value.newValue
+
+        store$$.next({
+          storeValue: value.newValue,
+          change: {
+            fieldPath: 'root' as any,
+            newValue: value.newValue,
+            previousValue,
+          },
+        }, value.id)
 
         return true
       }
@@ -114,8 +125,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
         if (value === previousValue) return true
 
-        if (safeStringify(value) === safeStringify(previousValue)) return true
-        // if (JSON.stringify(value) === JSON.stringify(previousValue)) return true
+        if (JSON.stringify(safeToJson(value)) === JSON.stringify(safeToJson(previousValue))) return true
+        // if (safeStringify(value) === safeStringify(previousValue)) return true
 
         if (fieldPath !== 'root') {
           (parentObject as any)[ROOT_VALUE] = value
@@ -185,47 +196,60 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
   })
 }
 
+
+// function getDeepUnproxiedObject (obj: any): any {
+//   if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+//     if (obj[ROOT_VALUE]?.[ROOT_VALUE]) {
+//       console.warn('Circular reference detected in getDeepUnproxiedObject')
 //
-// function getUnproxiedObject (obj: any): any {
-//   if (obj && typeof obj === 'object') {
-//     if (obj[ROOT_VALUE]?.[ROOT_VALUE]) return '[Circular reference]'
-//
-//     // Check if the object is a proxy
-//     if (obj[ROOT_VALUE])
-//       return getUnproxiedObject(obj[ROOT_VALUE])
+//       return '[Circular reference]'
+//     }
 //
 //
-//     // If it's not a proxy, return the object itself
-//     return obj
+//     const r = Object.fromEntries(
+//       Object.entries(obj).map(([key, value]) => {
+//         // console.log('____________________getDeepUnproxiedObject', key, value, value.constructor.name)
+//         if (value && typeof value === 'object' && !Array.isArray(value)) {
+//           if (key === 'links') console.log('getDeepUnproxiedObject', key, value)
+//
+//           // If it's a proxied object, get the unproxied value
+//           return [key, getDeepUnproxiedObject(value)]
+//         }
+//
+//         return [key, value]
+//       }),
+//     )
+//
+//
+//     return r
 //   }
 //
-//   // If it's not an object, return it as is
 //   return obj
 // }
 
-
-function safeStringify (obj: any): string {
-  // use removeCircularReferences to avoid circular references
-  // const cleanedObj = removeCircularReferences(obj)
-
-  return JSON.stringify(
-    obj,
-    (_key, value) => {
-      if (Array.isArray(value)) return value.map(i => safeStringify(i))
-
-      if (isReactElement(value)) {
-        // console.log('React element detected', value)
-
-        return { props: safeStringify(value.props), type: typeof value.type === 'string' ? value.type : '' }
-      }
-
-      if (globalThis?.HTMLElement && value instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: value.innerHTML }
-
-      // console.log('Value', value)
-
-      return value
-    })
-}
+// function safeStringify (obj: any): string {
+//   // use removeCircularReferences to avoid circular references
+//   // const cleanedObj = removeCircularReferences(obj)
+//   return JSON.stringify(safeToJson(obj))
+//   //
+//   // return JSON.stringify(
+//   //   obj,
+//   //   (_key, value) => {
+//   //     if (Array.isArray(value)) return value.map(i => safeStringify(i))
+//   //
+//   //     if (isReactElement(value)) {
+//   //       // console.log('React element detected', value)
+//   //
+//   //       return { props: safeStringify(value.props), type: typeof value.type === 'string' ? value.type : '' }
+//   //     }
+//   //
+//   //     if (globalThis?.HTMLElement && value instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: value.innerHTML }
+//   //
+//   //     // console.log('Value', value)
+//   //
+//   //     return value
+//   //   })
+// }
 
 
 function safeToJson (obj: any): Record<string, any> {

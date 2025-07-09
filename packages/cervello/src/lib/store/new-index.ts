@@ -1,5 +1,5 @@
 
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { nonReactiveObjectSymbol } from '../../types/shared'
 import { proxifyStore } from '../helpers/new-proxify-store'
@@ -65,8 +65,10 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     afterChange,
   } = options ?? {}
 
-  const clonedInitialValue = (initialValue)
-  const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
+  // const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
+  const clonedInitialValue = deepClone(initialValue)
+
+  const store$$ = createCacheableSubject<StoreChange<StoreValue>>()
 
   const proxiedStore = proxifyStore(
     store$$ as any,
@@ -82,12 +84,14 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       proxiedStore.$value = deepClone(initialValue)
     },
     useStore: (options) => {
+      const subscriberId = useId()
       const initialValue = options?.initialValue?.(proxiedStore.$value)
       const isInitialValueSet = useRef(false)
+      const [, setRenderCount] = useState(0)
 
       if (!isInitialValueSet.current && initialValue && initialValue !== proxiedStore) {
         isInitialValueSet.current = true;
-        (proxiedStore as any).$value = initialValue
+        (proxiedStore as any).$$value = { id: subscriberId, newValue: initialValue }
       }
 
       const selectFieldPaths = useRef(
@@ -97,14 +101,19 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
           ?? [],
       )
 
+
       const selectedFieldPathsForNestedObjects = useRef(
         selectFieldPaths.current
           .filter(fp => fp.includes('.*'))
           .map(fp => fp.replace('.*', '')),
       )
 
+      const reRender = (): void => {
+        setRenderCount(p => p + 1)
+      }
 
-      useLayoutEffect(() => {
+
+      useEffect(() => {
         if (options?.setValueOnMount) {
           void options.setValueOnMount(proxiedStore.$value).then((value) => {
             proxiedStore.$value = value
@@ -116,39 +125,39 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       }, [])
 
 
-      useSyncExternalStore(
-        (onStoreChange) => {
-          const subscription = store$$.subscribe({
-            next: (sc) => {
-              const storeChanges = Array.isArray(sc)
-                ? sc as Array<StoreChange<StoreValue>>
-                : [sc]
+      // Same implementation as useSyncExternalStore but with useEffect
+      useEffect(() => {
+        const subscription = store$$.subscribe({
+          id: subscriberId,
+          next: (sc) => {
+            const storeChanges = Array.isArray(sc)
+              ? sc as Array<StoreChange<StoreValue>>
+              : [sc]
 
-              if (!options?.select) {
-                onStoreChange()
-                options?.onChange?.(storeChanges)
+            if (!options?.select) {
+              reRender()
+              options?.onChange?.(storeChanges)
 
-                return
-              }
+              return
+            }
 
-              if (storeChanges.some(nextChange => (
-                nextChange.change.fieldPath === 'root'
+            if (storeChanges.some(nextChange => (
+              nextChange.change.fieldPath === 'root'
                 || selectFieldPaths.current.includes(nextChange.change.fieldPath))
                 || selectedFieldPathsForNestedObjects.current.find(fp => nextChange.change.fieldPath.startsWith(fp)),
-              )) {
-                onStoreChange()
-                options?.onChange?.(storeChanges)
-              }
-            },
-          })
+            )) {
+              reRender()
+              options?.onChange?.(storeChanges)
+            }
+          },
+        })
 
-          return () => {
-            subscription.unsubscribe()
-          }
-        },
-        () => store$$.getValue(),
-        () => store$$.getValue(),
-      )
+        return () => {
+          subscription.unsubscribe()
+        }
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [options?.select, options?.onChange])
 
       return proxiedStore
     },

@@ -19,8 +19,7 @@ export function deepClone <T> (obj: T): T {
 
   if (Array.isArray(obj)) {
     newObj = obj.map(item => deepClone(item))
-  // eslint-disable-next-line no-prototype-builtins
-  } else if (!obj.hasOwnProperty('$$typeof')) {
+  } else if (!isReactObjectLikeNode(obj)) {
     Object.entries(obj).forEach(([key, value]) => {
       newObj[key] = deepClone(value)
     })
@@ -147,6 +146,18 @@ export const isReactElement = (obj: unknown): boolean => {
   return !!(obj.$$typeof)
 }
 
+
+export function isReactObjectLikeNode (obj: unknown): boolean {
+  if (!isObject(obj)) return false
+  if (isReactElement(obj)) return true
+
+  const objKeys = Object.keys(obj)
+  const isReactObjNode = (objKeys.includes('tag') && objKeys.includes('containerInfo'))
+        || objKeys.some(k => k.startsWith('__reactContainer'))
+        || (objKeys.includes('tag') && objKeys.includes('stateNode'))
+
+  return isReactObjNode
+}
 
 
 export function isValidReactiveObject <T extends Record<string, any>> (value: T): boolean {

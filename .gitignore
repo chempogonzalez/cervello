@@ -108,3 +108,5 @@ dist
 
 /types
 **/cervello/types
+
+.DS_Store
