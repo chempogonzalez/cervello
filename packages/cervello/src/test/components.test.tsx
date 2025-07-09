@@ -56,8 +56,15 @@ beforeEach(() => {
 
 describe('[_CERVELLO_]', () => {
   describe('- [__store__]', async () => {
-    it('  (Get) full store value from exported store', async () => {
+    it('  (Get) full store value (not-proxied) from exported store', async () => {
       expect(store.$value).toStrictEqual(INITIAL_VALUE)
+
+      console.log('\n\n\n')
+      // Access to create nested proxy in case it's not initialized
+      console.log(store.links)
+      // Get full store without proxies (nested too)
+      console.log(store.$value)
+      console.log('\n\n\n')
     })
 
     it('  (Set) full store value from exported store', async () => {
@@ -76,7 +83,9 @@ describe('[_CERVELLO_]', () => {
 
       const newStore2 = { ...INITIAL_VALUE, name: 'new name' }
 
-      store.$value = newStore2
+      await act(() => {
+        store.$value = newStore2
+      })
 
       expect(store.$value).not.toEqual(newStore)
       expect(store.$value).toStrictEqual(newStore2)
@@ -320,25 +329,30 @@ describe('[_CERVELLO_]', () => {
           )
         }
 
-        render(
-          <>
-            <RenderSchemaTest />
-            <OtherComponent />
-          </>,
-        )
+        // FIXME: Test initialValue re-render when is changed in useEffect from parent
+        await act(() => {
+          render(
+            <>
+              <RenderSchemaTest />
+              <OtherComponent />
+            </>,
+          )
+        })
 
         const content = screen.getByTestId('content')
         const otherContent = screen.getByTestId('content-2')
 
         assertNumOfRenders(0)
-        assertNumOfRenders(0, 'other')
+        assertNumOfRenders(1, 'other')
+
         expect(renderedResultToString(content)).toContain('"type":"span"')
-        console.log({ otherContent: renderedResultToString(otherContent) })
+        // console.log({ otherContent: renderedResultToString(otherContent) })
         expect(renderedResultToString(otherContent)).toContain('"type":"span"')
 
         await sleep(100)
         // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
         assertNumOfRenders(0)
+        assertNumOfRenders(1, 'other')
       })
 
 
@@ -357,7 +371,8 @@ describe('[_CERVELLO_]', () => {
           content: render(<Container><div>React Element test</div></Container>).container,
         } as any
 
-        const { store: s, useStore } = cervello<any>({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { store: _s, useStore } = cervello<any>({
           schemaTest: [{ storeInitial }],
           storeInitial,
         })
@@ -444,7 +459,7 @@ describe('[_CERVELLO_]', () => {
           )
         })
 
-        console.log(s.$value)
+        // console.log(s.$value)
         const otherContent = screen.getByTestId('content-2')
 
         await waitFor(() => {
@@ -472,6 +487,85 @@ describe('[_CERVELLO_]', () => {
         }, { timeout: 10 })
 
         expect(renderedResultToString(otherContent)).toContain('Render content')
+      })
+
+
+
+      it('  Use initialValue in child and change from parent. Check sync and re-rendering of child', async () => {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { store: _s, useStore } = cervello<{ formSchema: { schema: Array<any> } }>({
+          formSchema: { schema: [] },
+        })
+
+        const Parent = (props) => {
+          useEffect(() => {
+            console.log('___ Executing initialValue "Parent" (Function)\n\n')
+            _s.formSchema.schema = [{ test: 1 }]
+          }, [])
+
+          return (<div>{props.children}</div>)
+        }
+
+        const ChildSchema = ({ schema }) => {
+          const [numOfRenders] = useLogRenders('ChildSchema')
+
+          return (
+            <div className='ChildSchema'>
+              {numOfRenders}
+              <pre data-testid='child-schema-content'>{JSON.stringify(schema)}</pre>
+              {/* <pre data-testid='schema-2'>{schema?.map((s, idx) => (<span key={idx}>{s.content}</span>))}</pre> */}
+            </div>
+          )
+        }
+
+
+
+        // INFO: ===========================================
+        const ChildSchemaInitialValue = () => {
+          const [numOfRenders] = useLogRenders('ChildSchemaInitialValue')
+
+          const s = useStore({
+            select: ['formSchema.schema'],
+            initialValue: (s) => {
+              console.log('** Executing initialValue "ChildSchemaInitialValue" (Function)\n\n')
+
+              return {
+                ...s,
+                formSchema: {
+                  schema: [{ initialSchemaValue: true }],
+                },
+              }
+            },
+          })
+
+          return (
+            <div className='App'>
+              {numOfRenders}
+              <pre data-testid='content'>{JSON.stringify(s)}</pre>
+              <pre data-testid='schema'>{s.formSchema?.schema?.map((s, idx) => (<span key={idx}>{s.content}</span>))}</pre>
+              <ChildSchema schema={s.formSchema.schema} />
+            </div>
+          )
+        }
+        // INFO: ===========================================
+
+
+        await act(async () => {
+          render(
+            <Parent>
+              <ChildSchemaInitialValue />
+            </Parent>,
+          )
+        })
+
+
+
+        await sleep(100)
+
+        await waitFor(() => {
+          assertNumOfRenders(1, 'ChildSchemaInitialValue')
+          assertNumOfRenders(1, 'ChildSchema')
+        }, { timeout: 250 })
       })
     })
 
@@ -779,7 +873,9 @@ describe('[_CERVELLO_]', () => {
         const links = store.links
 
 
-        store.links.nested = { test: 1000 }
+        await act(() => {
+          store.links.nested = { test: 1000 }
+        })
 
         expect(links === store.links).toBeTruthy()
       })
@@ -834,15 +930,26 @@ describe('[_CERVELLO_]', () => {
 
       expect(changedValue).toEqual(1_000)
 
+      await act(() => {
+        store.links = { github: '' } as any
+      })
+
+      const renderedResultObj2 = renderedResultToObject(content)
+      const changedValue2 = renderedResultObj2.links
+
+      expect(changedValue2).toEqual({ github: '' })
+
+      assertNumOfRenders(2)
       reset()
 
       await waitFor(() => {
-        assertNumOfRenders(2)
+        assertNumOfRenders(3)
         const renderedResultObjAfterReset = renderedResultToObject(content)
 
         const valueAfterReset = renderedResultObjAfterReset.links.nested.test
 
         expect(valueAfterReset).toEqual(INITIAL_VALUE.links.nested.test)
+        expect(renderedResultObjAfterReset).toEqual(Object.fromEntries(Object.entries(INITIAL_VALUE).filter(([,v]) => typeof v !== 'function')))
       })
     })
   })
