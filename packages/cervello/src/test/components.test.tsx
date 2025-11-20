@@ -624,6 +624,7 @@ describe('[_CERVELLO_]', () => {
         })
 
         assertNumOfRenders(0)
+        expect(onChangeMockFunction).toHaveBeenCalledTimes(0)
       })
 
       it('  onChange - Change SAME value from selected fields and check `afterChange`', async () => {

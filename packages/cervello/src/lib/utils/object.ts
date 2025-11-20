@@ -205,3 +205,27 @@ const stringify = (obj: any): string => JSON.stringify(obj)
  * @returns boolean
  */
 export const contentComparer = (a: any, b: any): boolean => stringify(a) === stringify(b)
+
+
+
+
+export function safeToJson (obj: any): Record<string, any> {
+  const o: Record<string, any> = {}
+
+  if (typeof obj !== 'object' || obj == null)
+    return obj
+
+  if (Array.isArray(obj))
+    return obj.map(item => safeToJson(item))
+
+  if (isReactElement(obj))
+    return { props: safeToJson(obj.props), type: typeof obj.type === 'string' ? obj.type : '' }
+
+  if (globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: obj.innerHTML }
+
+  Object.entries(obj).forEach(([key, v]) => {
+    o[key] = safeToJson(v)
+  })
+
+  return o
+}

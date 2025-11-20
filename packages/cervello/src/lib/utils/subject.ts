@@ -85,7 +85,7 @@ export function createCacheableSubject<T> (/* defaultValue: T/*, getValueOnSubsc
 
     return {
       unsubscribe: () => {
-        observerList = observerList.filter(o => o !== observer)
+        observerList = observerList.filter(o => o.id !== observer.id)
       },
     }
   }

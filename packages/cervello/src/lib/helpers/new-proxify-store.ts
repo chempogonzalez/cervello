@@ -1,5 +1,5 @@
 
-import { deepClone, isReactElement, isValidReactiveObject } from '../utils/object'
+import { deepClone, isValidReactiveObject, safeToJson } from '../utils/object'
 
 import type { StoreChange } from '../../types/shared'
 import type { CacheableSubject } from '../utils/subject'
@@ -252,26 +252,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 // }
 
 
-function safeToJson (obj: any): Record<string, any> {
-  const o: Record<string, any> = {}
-
-  if (typeof obj !== 'object' || obj == null)
-    return obj
-
-  if (Array.isArray(obj))
-    return obj.map(item => safeToJson(item))
-
-  if (isReactElement(obj))
-    return { props: safeToJson(obj.props), type: typeof obj.type === 'string' ? obj.type : '' }
-
-  if (globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: obj.innerHTML }
-
-  Object.entries(obj).forEach(([key, v]) => {
-    o[key] = safeToJson(v)
-  })
-
-  return o
-}
 
 
 // function removeCircularReferences (obj: any): any {
