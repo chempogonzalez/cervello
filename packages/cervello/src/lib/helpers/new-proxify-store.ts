@@ -102,7 +102,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       const isRootTarget = Object.hasOwn(parentObject, ROOT_VALUE)
 
       // INFO: !Internal only.
-      // Used to set the value of the store without notifying the store
+      // Used to set the value of the store without notifying the current subscriber (value.id)
       if (isRootTarget && key === '$$value') {
         const previousValue = parentObject[ROOT_VALUE];
 
@@ -157,7 +157,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       if (previousValue === value) return true
 
 
-      // New object values, check if the field has already a proxy created to use it instead of reacreating a new instance
+      // New object values, check if the field has already a proxy created to use it instead of recreating a new instance
       if (isValidReactiveObject(value) && previousValue?._$fieldPath)
         previousValue.$value = value
       else

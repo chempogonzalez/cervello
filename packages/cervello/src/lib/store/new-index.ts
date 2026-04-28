@@ -61,11 +61,9 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     useStore: (options?: CervelloUseStoreOptions<StoreValue>) => MutableStoreValue<StoreValue>
   } {
   const {
-    // beforeChange,
     afterChange,
   } = options ?? {}
 
-  // const store$$ = createCacheableSubject<StoreChange<StoreValue>>(clonedInitialValue as any)
   const clonedInitialValue = deepClone(initialValue)
 
   const store$$ = createCacheableSubject<StoreChange<StoreValue>>()
@@ -73,7 +71,6 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
   const proxiedStore = proxifyStore(
     store$$ as any,
     clonedInitialValue,
-    // { beforeChange, afterChange },
     { afterChange },
   ) as MutableStoreValue<StoreValue>
 
