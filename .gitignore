@@ -110,3 +110,6 @@ dist
 **/cervello/types
 
 .DS_Store
+
+**/.env.local
+**/cervello/.npmrc
