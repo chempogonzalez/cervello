@@ -179,7 +179,18 @@ describe('[deepClone]', () => {
 
       expect(() => deepClone(obj)).toThrow(Error)
     })
-  })
+
+    it('preserves functions as-is when they are properties inside an object', () => {
+      const fn = () => 42
+      const obj = { fn, name: 'test' }
+      const clone = deepClone(obj)
+
+      expect(clone.fn).toBe(fn)
+      expect(typeof clone.fn).toBe('function')
+      expect(clone.fn()).toBe(42)
+      expect(clone.name).toBe('test')
+     })
+   })
 })
 
 

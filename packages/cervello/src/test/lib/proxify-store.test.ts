@@ -112,14 +112,13 @@ describe('[proxifyStore]', () => {
 
       const linksProxy1 = proxy.links
 
-      proxy.links = { nested: { test: 1000, otherProp: 'other' } }
+      proxy.links = { nested: { test: 1000, otherProp: 'other' } } as any
 
       await sleep(20)
 
       const linksProxy2 = proxy.links
-      const linksProxy3 = proxy.links
 
-      expect(linksProxy2).toBe(linksProxy3)
+      expect(linksProxy1).toBe(linksProxy2)
     })
   })
 
@@ -128,7 +127,9 @@ describe('[proxifyStore]', () => {
       const initial = { user: { name: 'test' } }
       const proxy = proxifyStore(store$$, initial)
 
+      // @ts-expect-error - internal field for testing
       expect(proxy._$fieldPath).toBe('root')
+      // @ts-expect-error - internal field for testing
       expect(proxy.user._$fieldPath).toBe('root.user')
     })
 
@@ -205,6 +206,43 @@ describe('[proxifyStore]', () => {
 
       expect(value1).not.toBe(value2)
       expect(value1).toEqual(value2)
+    })
+
+    it('$value clone is mutation-independent from the underlying proxy', async () => {
+      const initial = { user: { name: 'test', nested: { age: 25 } } }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<{ user: { name: string; nested: { age: number } } }>
+
+      const value = proxy.$value
+
+      // Mutate the clone returned by $value
+      value.user.name = 'MUTATED'
+      value.user.nested = { age: 999 }
+
+      // The underlying proxy must not be affected by the clone mutation
+      expect(proxy.user.name).toBe('test')
+      expect(proxy.user.nested.age).toBe(25)
+    })
+
+    it('$value returns plain objects even when nested proxies have been created', async () => {
+      const initial = { a: { b: { c: 1 } } }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<{ a: { b: { c: number } } }>
+
+      // Access nested property to create the nested proxy
+      expect(proxy.a.b.c).toBe(1)
+
+      // @ts-expect-error - internal field for testing
+      expect(proxy.a.b._$fieldPath).toBe('root.a.b')
+
+      // Now $value must return fully plain objects, not proxies
+      const value = proxy.$value
+
+      expect(typeof value.a).toBe('object')
+      // @ts-expect-error - internal field for testing
+      expect(value.a._$fieldPath).toBeUndefined()
+      expect(typeof value.a.b).toBe('object')
+      // @ts-expect-error - internal field for testing
+      expect(value.a.b._$fieldPath).toBeUndefined()
+      expect(value.a.b.c).toBe(1)
     })
 
     it('setting $value replaces entire store', async () => {

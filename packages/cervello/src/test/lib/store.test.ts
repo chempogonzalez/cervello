@@ -1,10 +1,12 @@
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
+
 import { cervello, nonReactive } from '../../lib/store/new-index'
 import { deepClone } from '../../lib/utils/object'
 
 
-function sleep (ms: number): Promise<void> {
+
+async function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
@@ -79,7 +81,7 @@ describe('[cervello store core]', () => {
       const { store, reset } = cervello<{ user: { name: string; getName: () => string } }>({
         user: {
           name: 'test',
-          getName() { return 'getName called' },
+          getName () { return 'getName called' },
         },
       })
 
@@ -190,10 +192,29 @@ describe('[cervello store core]', () => {
       await sleep(20)
 
       const v = store.$value
+
       expect(v.nested.value).toBe(2)
 
       const v2 = store.$value
+
       expect(v2.nested.value).toBe(2)
+    })
+
+    it('$value clone is mutation-independent at the store API level', async () => {
+      const { store } = cervello<{ nested: { value: number } }>({
+        nested: { value: 1 },
+      })
+
+      const clone = store.$value
+
+      // Mutate the clone
+      clone.nested.value = 9999
+
+      // The underlying store must not be affected
+      expect(store.nested.value).toBe(1)
+
+      // $value must still return the current correct value
+      expect(store.$value.nested.value).toBe(1)
     })
   })
 
@@ -257,7 +278,7 @@ describe('[cervello store core]', () => {
 
       store.x = 2
       reset()
-      reset()  // double reset should be safe
+      reset() // double reset should be safe
       await sleep(20)
       expect(store.x).toBe(0)
     })

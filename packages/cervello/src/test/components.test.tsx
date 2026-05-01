@@ -59,12 +59,12 @@ describe('[_CERVELLO_]', () => {
     it('  (Get) full store value (not-proxied) from exported store', async () => {
       expect(store.$value).toStrictEqual(INITIAL_VALUE)
 
-      console.log('\n\n\n')
-      // Access to create nested proxy in case it's not initialized
-      console.log(store.links)
-      // Get full store without proxies (nested too)
-      console.log(store.$value)
-      console.log('\n\n\n')
+      // console.log('\n\n\n')
+      // // Access to create nested proxy in case it's not initialized
+      // console.log(store.links)
+      // // Get full store without proxies (nested too)
+      // console.log(store.$value)
+      // console.log('\n\n\n')
     })
 
     it('  (Set) full store value from exported store', async () => {
@@ -303,7 +303,7 @@ describe('[_CERVELLO_]', () => {
 
           // TEST:  to avoid infinite loop due to the use of `useStore` inside the component
           useEffect(() => {
-            console.log('initialValue change')
+            // console.log('initialValue change')
           }, [s])
 
 
@@ -499,7 +499,6 @@ describe('[_CERVELLO_]', () => {
 
         const Parent = (props) => {
           useEffect(() => {
-            console.log('___ Executing initialValue "Parent" (Function)\n\n')
             _s.formSchema.schema = [{ test: 1 }]
           }, [])
 
@@ -527,8 +526,6 @@ describe('[_CERVELLO_]', () => {
           const s = useStore({
             select: ['formSchema.schema'],
             initialValue: (s) => {
-              console.log('** Executing initialValue "ChildSchemaInitialValue" (Function)\n\n')
-
               return {
                 ...s,
                 formSchema: {
@@ -912,7 +909,9 @@ describe('[_CERVELLO_]', () => {
 
 
     it('  Reset to initial-state for nested objects', async () => {
-      render(<AppWithClick onClick={(s: typeof store) => { s.links.nested.test = 1_000 }} />)
+      await act(() => {
+        render(<AppWithClick onClick={(s: typeof store) => { s.links.nested.test = 1_000 }} />)
+      })
       const content = screen.getByTestId('content')
       const button = screen.getByText('Change')
 
@@ -941,7 +940,9 @@ describe('[_CERVELLO_]', () => {
       expect(changedValue2).toEqual({ github: '' })
 
       assertNumOfRenders(2)
-      reset()
+      await act(() => {
+        reset()
+      })
 
       await waitFor(() => {
         assertNumOfRenders(3)
