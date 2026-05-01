@@ -441,7 +441,7 @@ describe('[_CERVELLO_]', () => {
             <section className='Other'>
               {numOfRenders}
               <pre data-testid='content-2'>{JSON.stringify(s)}</pre>
-              <pre data-testid='schema-2'>{React.Children.toArray(s.schemaTest?.map(s => (s.content)))}</pre>
+              <pre data-testid='schema-2'>{React.Children.toArray(s.schemaTest?.map((s: any) => (s.content)))}</pre>
               <button onClick={() => { setShouldRender(!shouldRender) }}>Change</button>
               { !!shouldRender && <RenderSchemaTest />}
             </section>
@@ -497,7 +497,7 @@ describe('[_CERVELLO_]', () => {
           formSchema: { schema: [] },
         })
 
-        const Parent = (props) => {
+        const Parent = (props: any) => {
           useEffect(() => {
             _s.formSchema.schema = [{ test: 1 }]
           }, [])
@@ -505,7 +505,7 @@ describe('[_CERVELLO_]', () => {
           return (<div>{props.children}</div>)
         }
 
-        const ChildSchema = ({ schema }) => {
+        const ChildSchema = ({ schema }: any) => {
           const [numOfRenders] = useLogRenders('ChildSchema')
 
           return (

@@ -603,6 +603,7 @@ describe('[proxifyStore]', () => {
 
       expect(capturedChanges.length).toBeGreaterThan(0)
       expect(capturedChanges[0].storeValue).toBeDefined()
+      expect(capturedChanges[0].storeValue.user).toBe(parentRef)
     })
 
     it('nested objects are automatically proxified on access', async () => {
@@ -612,6 +613,7 @@ describe('[proxifyStore]', () => {
       const nested = proxy.a.b
 
       expect(nested.value).toBe(1)
+      // @ts-expect-error - internal field for testing
       expect(nested._$fieldPath).toBe('root.a.b')
     })
 
@@ -660,7 +662,7 @@ describe('[proxifyStore]', () => {
     })
 
     it('array with nested objects works correctly', async () => {
-      const initial = { items: [{ a: 1 }, { b: 2 }] } as { items: Array<{ a?: number; b?: number }> }
+      const initial: { items: Array<{ a?: number; b?: number }> } = { items: [{ a: 1 }, { b: 2 }] }
       const proxy = proxifyStore(store$$, initial)
 
       // Arrays themselves are not proxified, but items can be read

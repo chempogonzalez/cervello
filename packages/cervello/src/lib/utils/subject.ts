@@ -34,14 +34,14 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
       if (isFlushing || updateList.size === 0) return
 
       isFlushing = true
-      const updatesSnapshot = new Map(updateList)
+      const updateListSnapshot = new Map(updateList)
 
       updateList.clear()
 
       for (const observer of observerList) {
         const filtered: Array<FlushItem<T>> = []
 
-        for (const item of updatesSnapshot.values()) {
+        for (const item of updateListSnapshot.values()) {
           if (item.subscriberId !== observer.id)
             filtered.push(item)
         }
