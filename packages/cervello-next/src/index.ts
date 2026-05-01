@@ -1,1 +1,0 @@
-export { withCervello } from './lib'
