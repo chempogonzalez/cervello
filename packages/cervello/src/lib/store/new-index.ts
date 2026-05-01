@@ -82,7 +82,8 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     },
     useStore: (options) => {
       const subscriberId = useId()
-      const initialValue = options?.initialValue?.(proxiedStore.$value)
+      // const initialValue = options?.initialValue?.(proxiedStore.$value)
+      const initialValue = useRef(options?.initialValue?.(proxiedStore.$value)).current
       const isInitialValueSet = useRef(false)
       const [, setRenderCount] = useState(0)
 
