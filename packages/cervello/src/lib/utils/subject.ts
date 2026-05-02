@@ -1,4 +1,3 @@
-
 type Observer<T> = {
   id: string
   next: (value: T, subscriberId?: string) => void
@@ -20,53 +19,26 @@ export type CacheableSubject<T> = {
 export function createCacheableSubject<T> (): CacheableSubject<T> {
   let isScheduled = false
   let isFlushing = false
-  let tick = 0
   const observerList: Array<Observer<T>> = []
-  const updateList = new Map<string, FlushItem<T>>()
+  const updateList: Array<FlushItem<T>> = []
 
-  const scheduleFlush = (): void => {
-    if (isScheduled || isFlushing) return
-    isScheduled = true
 
-    queueMicrotask(() => {
-      isScheduled = false
-
-      if (isFlushing || updateList.size === 0) return
-
-      isFlushing = true
-      const updateListSnapshot = new Map(updateList)
-
-      updateList.clear()
-
-      for (const observer of observerList) {
-        const filtered: Array<FlushItem<T>> = []
-
-        for (const item of updateListSnapshot.values()) {
-          if (item.subscriberId !== observer.id)
-            filtered.push(item)
-        }
-
-        if (filtered.length > 0)
-          observer.next(filtered.map(f => f.newValue) as T)
-      }
-
-      isFlushing = false
-
-      if (updateList.size > 0)
-        scheduleFlush()
-    })
-  }
-
-  const next = (newValue: T, subscriberId?: string): void => {
-    const key = `${subscriberId ?? 'g'}-${++tick}`
-
-    updateList.set(key, { newValue, subscriberId })
+  /** Pushes a new value to the subject and schedules a flush if not already scheduled or flushing.
+    * `newValue`:
+    *     The new value to be emitted to subscribers.
+    *
+    * `subscriberId`: (Optional)
+    *    identifier for the subscriber that triggered the update, used to prevent self-notifications. (usage in initialValue)
+    */
+  function next (newValue: T, subscriberId?: string): void {
+    updateList.push({ newValue, subscriberId })
 
     if (!isScheduled && !isFlushing)
       scheduleFlush()
   }
 
-  const subscribe = (observer: Observer<T>): Subscription => {
+
+  function subscribe (observer: Observer<T>): Subscription {
     observerList.push(observer)
 
     return {
@@ -78,6 +50,47 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
       },
     }
   }
+
+
+
+  function scheduleFlush (): void {
+    if (isScheduled || isFlushing || updateList.length === 0) return
+    isScheduled = true
+
+    queueMicrotask(() => {
+      isScheduled = false
+
+      if (isFlushing || updateList.length === 0) return
+
+      isFlushing = true
+
+      const changesSnapshot: Array<FlushItem<T>> = [...updateList]
+
+      // After taking a snapshot of the current updates, clear the update
+      // list to allow new updates to be collected while flushing
+      updateList.length = 0
+
+      for (const observer of observerList) {
+        const filtered: Array<T> = []
+
+        for (const change of changesSnapshot) {
+          if (change.subscriberId !== observer.id)
+            filtered.push(change.newValue)
+        }
+
+        if (filtered.length > 0)
+          observer.next(filtered as T)
+      }
+
+      isFlushing = false
+
+      // Re-check if there are new updates that came in during the flush
+      if (updateList.length > 0)
+        scheduleFlush()
+    })
+  }
+
+
 
 
   return { next, subscribe }
