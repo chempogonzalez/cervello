@@ -113,3 +113,6 @@ dist
 
 **/.env.local
 **/cervello/.npmrc
+
+.AGENTS.md
+**/AGENTS.md
