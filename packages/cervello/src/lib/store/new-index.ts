@@ -78,31 +78,47 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     },
     useStore: (options) => {
       const subscriberId = useId()
-      const initialValue = useRef(options?.initialValue?.(proxiedStore.$value)).current
       const isInitialValueSet = useRef(false)
       const [, setRenderCount] = useState(0)
 
-      if (!isInitialValueSet.current
-        && initialValue
-        && JSON.stringify(safeToJson(initialValue)) !== JSON.stringify(safeToJson(proxiedStore.$value))
-      ) {
-        isInitialValueSet.current = true;
-        (proxiedStore as any).$$value = { id: subscriberId, newValue: initialValue }
+      // Latest options are read through this ref by the subscription (created
+      // once per mount), so callbacks like `onChange` are never stale closures
+      const optionsRef = useRef(options)
+
+      optionsRef.current = options
+
+      // useState-like semantics: `initialValue` runs only on the first render
+      // (SSR included), so the store traversals it needs (clone + compare)
+      // are paid once per mount instead of on every re-render
+      if (!isInitialValueSet.current) {
+        isInitialValueSet.current = true
+
+        const initialValue = options?.initialValue?.(proxiedStore.$value)
+
+        if (initialValue
+          && JSON.stringify(safeToJson(initialValue)) !== JSON.stringify(safeToJson(proxiedStore.$value))
+        )
+          (proxiedStore as any).$$value = { id: subscriberId, newValue: initialValue }
       }
 
-      const selectFieldPaths = useRef(
-        (typeof options?.select === 'function'
-          ? options?.select?.()
-          : options?.select)
-          ?? [],
-      )
+      // `select` is frozen from the first render (computed lazily, once)
+      const selectFieldPaths = useRef<Array<FieldPath<StoreValue>> | null>(null)
 
+      if (selectFieldPaths.current === null) {
+        selectFieldPaths.current = (
+          typeof options?.select === 'function'
+            ? options.select()
+            : options?.select
+        ) ?? []
+      }
 
-      const selectedFieldPathsForNestedObjects = useRef(
-        selectFieldPaths.current
+      const selectedFieldPathsForNestedObjects = useRef<Array<string> | null>(null)
+
+      if (selectedFieldPathsForNestedObjects.current === null) {
+        selectedFieldPathsForNestedObjects.current = selectFieldPaths.current
           .filter(fp => fp.includes('.*'))
-          .map(fp => fp.replace('.*', '')),
-      )
+          .map(fp => fp.replace('.*', ''))
+      }
 
       const reRender = (): void => {
         setRenderCount(p => p + 1)
@@ -121,7 +137,9 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       }, [])
 
 
-      // Same implementation as useSyncExternalStore but with useEffect
+      // Same implementation as useSyncExternalStore but with useEffect.
+      // Subscribed once per mount: `select` is frozen from the first render
+      // and the latest callbacks are read through `optionsRef`
       useEffect(() => {
         const subscription = store$$.subscribe({
           id: subscriberId,
@@ -130,20 +148,22 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
               ? sc as Array<StoreChange<StoreValue>>
               : [sc]
 
-            if (!options?.select) {
+            const currentOptions = optionsRef.current
+
+            if (!currentOptions?.select) {
               reRender()
-              options?.onChange?.(storeChanges)
+              currentOptions?.onChange?.(storeChanges)
 
               return
             }
 
             if (storeChanges.some(nextChange => (
               nextChange.change.fieldPath === 'root'
-                || selectFieldPaths.current.includes(nextChange.change.fieldPath))
-                || selectedFieldPathsForNestedObjects.current.find(fp => nextChange.change.fieldPath.startsWith(fp)),
+                || (selectFieldPaths.current ?? []).includes(nextChange.change.fieldPath))
+                || (selectedFieldPathsForNestedObjects.current ?? []).find(fp => nextChange.change.fieldPath.startsWith(fp)),
             )) {
               reRender()
-              options?.onChange?.(storeChanges)
+              currentOptions?.onChange?.(storeChanges)
             }
           },
         })
@@ -153,10 +173,9 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
         }
 
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [options?.select, options?.onChange])
+      }, [])
 
       return proxiedStore
     },
   }
 }
-

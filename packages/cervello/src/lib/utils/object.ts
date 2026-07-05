@@ -7,24 +7,36 @@ import { INTERNAL_VALUE_PROP } from '../helpers/constants'
  * Clones all the provided object and nested properties and it also
  * iterates nested arrays to deepClone them
  *
+ * Circular references are considered invalid store values (only React
+ * elements/nodes, which are never traversed, may contain them) so they
+ * are cut to `null` instead of recursing forever
+ *
  * @param obj - base object to be cloned
+ * @param ancestors - objects of the current traversal path, to detect cycles
  * @returns new cloned object with new reference
  */
-export function deepClone <T> (obj: T): T {
+export function deepClone <T> (obj: T, ancestors = new WeakSet<object>()): T {
   if (!obj || typeof obj !== 'object')
     return obj
+
+  if (ancestors.has(obj))
+    return null as T
 
   let newObj = {} as any
 
   if (Array.isArray(obj)) {
-    newObj = obj.map(item => deepClone(item))
+    ancestors.add(obj)
+    newObj = obj.map(item => deepClone(item, ancestors))
+    ancestors.delete(obj)
   } else if (!isReactObjectLikeNode(obj)) {
+    ancestors.add(obj)
     Object.entries(obj).forEach(([key, value]) => {
-      newObj[key] = deepClone(value)
+      newObj[key] = deepClone(value, ancestors)
     })
     Object.getOwnPropertySymbols(obj).forEach((symbol) => {
       newObj[symbol] = (obj as any)[symbol]
     })
+    ancestors.delete(obj)
   } else {
     newObj = obj
   }
@@ -208,22 +220,47 @@ export const contentComparer = (a: any, b: any): boolean => stringify(a) === str
 
 
 
-export function safeToJson (obj: any): Record<string, any> {
-  const o: Record<string, any> = {}
-
+export function safeToJson (obj: any, ancestors = new WeakSet<object>()): Record<string, any> {
   if (typeof obj !== 'object' || obj == null)
     return obj
 
-  if (Array.isArray(obj))
-    return obj.map(item => safeToJson(item))
+  // Circular reference: cut the cycle to keep the traversal finite
+  if (ancestors.has(obj))
+    return null as any
 
-  if (isReactElement(obj))
-    return { props: safeToJson(obj.props), type: typeof obj.type === 'string' ? obj.type : '' }
+  if (Array.isArray(obj)) {
+    ancestors.add(obj)
+    const arr = obj.map(item => safeToJson(item, ancestors))
+
+    ancestors.delete(obj)
+
+    return arr
+  }
+
+  if (isReactElement(obj)) {
+    ancestors.add(obj)
+    const element = { props: safeToJson(obj.props, ancestors), type: typeof obj.type === 'string' ? obj.type : '' }
+
+    ancestors.delete(obj)
+
+    return element
+  }
 
   if (globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: obj.innerHTML }
 
+  // React internals (fibers, containers...) are huge and circular: treat them
+  // as opaque values instead of traversing them (same rule as deepClone)
+  if (isReactObjectLikeNode(obj))
+    return { type: '[ReactNode]' }
+
+  const o: Record<string, any> = {}
+
+  ancestors.add(obj)
+
   for (const [key, v] of Object.entries(obj))
-    o[key] = safeToJson(v)
+    o[key] = safeToJson(v, ancestors)
+
+  ancestors.delete(obj)
 
   return o
 }
