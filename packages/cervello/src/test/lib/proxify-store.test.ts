@@ -702,4 +702,47 @@ describe('[proxifyStore]', () => {
       expect(Object.keys(proxy)).toContain('name')
     })
   })
+
+  describe('circular structures (max call stack regression)', () => {
+    it('does not overflow when the store holds a DOM-element-like object with circular fibers', async () => {
+      // React stamps `__reactFiber$xyz` on DOM nodes, pointing into the
+      // circular fiber tree (child.return === parent)
+      const fiberParent: any = { tag: 5, stateNode: {}, child: null, sibling: null }
+      const fiberChild: any = { tag: 5, stateNode: {}, child: null, return: fiberParent }
+
+      fiberParent.child = fiberChild
+
+      const domElementLike = { __reactFiber$abc123: fiberChild, __reactProps$abc123: { onClick: () => {} } }
+
+      const initial = { el: domElementLike, count: 0 } as any
+      const proxy = proxifyStore(store$$, initial)
+
+      expect(() => proxy.$value).not.toThrow()
+      expect(() => JSON.stringify(proxy)).not.toThrow()
+      // `$value` setter compares previous/new values traversing both of them
+      expect(() => { proxy.$value = { el: domElementLike, count: 1 } }).not.toThrow()
+
+      await sleep(20)
+
+      expect(proxy.count).toBe(1)
+    })
+
+    it('does not overflow when an aliased proxy is assigned into its own subtree', async () => {
+      const initial = { a: { x: 1, child: null } } as any
+      const proxy = proxifyStore(store$$, initial)
+
+      proxy.a.child = proxy.a
+
+      await sleep(20)
+
+      expect(() => proxy.$value).not.toThrow()
+      expect(() => JSON.stringify(proxy)).not.toThrow()
+
+      const value = proxy.$value
+
+      expect(value.a.x).toBe(1)
+      // The cycle is cut instead of cloned infinitely
+      expect(value.a.child).toBe(null)
+    })
+  })
 })

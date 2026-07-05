@@ -1,9 +1,11 @@
 
 import { describe, it, expect, vi } from 'vitest'
+
 import { createCacheableSubject } from '../../lib/utils/subject'
 
 
-function sleep (ms: number): Promise<void> {
+
+async function sleep (ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
@@ -142,7 +144,8 @@ describe('[CacheableSubject]', () => {
 
     it('no notification for next before any subscribe', () => {
       const subject = createCacheableSubject<number>()
-      expect(() => subject.next(42)).not.toThrow()
+
+      expect(() => { subject.next(42) }).not.toThrow()
     })
   })
 
@@ -180,8 +183,8 @@ describe('[CacheableSubject]', () => {
       subject.next(42)
       await sleep(20)
 
-      expect(sub1Received).toEqual([[42]])
-      expect(sub2Received).toEqual([[42]])
+      expect(sub1Received).toEqual([ [42] ])
+      expect(sub2Received).toEqual([ [42] ])
     })
 
     it('subscriber excluded only for matching id', async () => {
@@ -196,7 +199,7 @@ describe('[CacheableSubject]', () => {
       subject.next('x', 'other-sub')
       await sleep(20)
 
-      expect(receivedItems).toEqual([['x']])
+      expect(receivedItems).toEqual([ ['x'] ])
     })
 
     it('general updates (no subscriberId) reach all subscribers', async () => {
@@ -216,8 +219,8 @@ describe('[CacheableSubject]', () => {
       subject.next(true, undefined)
       await sleep(20)
 
-      expect(sub1Received).toEqual([[true]])
-      expect(sub2Received).toEqual([[true]])
+      expect(sub1Received).toEqual([ [true] ])
+      expect(sub2Received).toEqual([ [true] ])
     })
 
     it('mixed: some updates from subscriber, some from global', async () => {
@@ -234,16 +237,16 @@ describe('[CacheableSubject]', () => {
         next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
       })
 
-      subject.next(1, 'sub-1')  // sub-1 excluded
-      subject.next(2, 'sub-2')  // sub-2 excluded
-      subject.next(3)            // both receive
+      subject.next(1, 'sub-1') // sub-1 excluded
+      subject.next(2, 'sub-2') // sub-2 excluded
+      subject.next(3) // both receive
 
       await sleep(20)
 
       // sub-1: excluded from 1, receives 2 and 3 = [2, 3]
       // sub-2: receives 1, excluded from 2, receives 3 = [1, 3]
-      expect(sub1Received).toEqual([[2, 3]])
-      expect(sub2Received).toEqual([[1, 3]])
+      expect(sub1Received).toEqual([ [2, 3] ])
+      expect(sub2Received).toEqual([ [1, 3] ])
     })
   })
 
@@ -258,6 +261,7 @@ describe('[CacheableSubject]', () => {
       }
 
       const subscription = subject.subscribe(sub)
+
       subscription.unsubscribe()
 
       subject.next('after unsubscribe')
@@ -290,6 +294,7 @@ describe('[CacheableSubject]', () => {
       }
 
       const s1 = subject.subscribe(sub1)
+
       subject.subscribe(sub2)
 
       s1.unsubscribe()
@@ -298,7 +303,7 @@ describe('[CacheableSubject]', () => {
       await sleep(20)
 
       expect(sub1Received).toEqual([])
-      expect(sub2Received).toEqual([['after']])
+      expect(sub2Received).toEqual([ ['after'] ])
     })
   })
 
@@ -326,9 +331,9 @@ describe('[CacheableSubject]', () => {
       subject.next(2)
       await sleep(20)
 
-      expect(sub1Received).toEqual([[1, 2]])
-      expect(sub2Received).toEqual([[1, 2]])
-      expect(sub3Received).toEqual([[1, 2]])
+      expect(sub1Received).toEqual([ [1, 2] ])
+      expect(sub2Received).toEqual([ [1, 2] ])
+      expect(sub3Received).toEqual([ [1, 2] ])
     })
 
     it('each observer gets deduped updates from own id', async () => {
@@ -349,8 +354,8 @@ describe('[CacheableSubject]', () => {
       subject.next(2, 'sub-2')
       await sleep(20)
 
-      expect(sub1Received).toEqual([[2]])
-      expect(sub2Received).toEqual([[1]])
+      expect(sub1Received).toEqual([ [2] ])
+      expect(sub2Received).toEqual([ [1] ])
     })
   })
 
@@ -369,10 +374,11 @@ describe('[CacheableSubject]', () => {
       // Unsubscribe 100 other observers
       for (let i = 0; i < 100; i++) {
         const s = subject.subscribe({ id: `temp-${i}`, next: () => {} })
+
         s.unsubscribe()
       }
 
-      subscription.unsubscribe()  // Also unsubscribe the survivor
+      subscription.unsubscribe() // Also unsubscribe the survivor
 
       subject.next('survivor')
       await sleep(20)
@@ -382,6 +388,7 @@ describe('[CacheableSubject]', () => {
 
     it('next before any subscribe does not throw', () => {
       const subject = createCacheableRecordSubject<number>()
+
       expect(() => subject.next(42)).not.toThrow()
     })
 
@@ -416,9 +423,9 @@ describe('[CacheableSubject]', () => {
         next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
       })
 
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 1000; i++)
         subject.next(i)
-      }
+
 
       await sleep(20)
 
@@ -457,6 +464,7 @@ describe('[CacheableSubject]', () => {
 
 // Helper for type-correct subject tests that always receive arrays
 type RecordSubject<T> = ReturnType<typeof createCacheableRecordSubject<T>>
+
 function createCacheableRecordSubject<T> (): RecordSubject<T> {
   return createCacheableSubject<T>()
 }

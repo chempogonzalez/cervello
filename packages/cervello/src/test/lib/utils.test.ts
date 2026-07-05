@@ -1,5 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
+
 import {
   deepClone,
   isObject,
@@ -25,12 +26,6 @@ function mockReactFiberNode (): any {
 }
 
 
-// Simple mock HTMLElement
-function mockHTMLElement (): any {
-  return { innerHTML: '<span>test</span>' } as any
-}
-
-
 describe('[deepClone]', () => {
   describe('basic types', () => {
     it('returns primitives as-is', () => {
@@ -38,11 +33,12 @@ describe('[deepClone]', () => {
       expect(deepClone('string')).toBe('string')
       expect(deepClone(true)).toBe(true)
       expect(deepClone(null)).toBe(null)
-      expect(deepClone(undefined)).toBe(undefined)
+      expect(deepClone(undefined as any)).toBe(undefined)
     })
 
     it('returns functions as-is', () => {
       const fn = () => 42
+
       expect(deepClone(fn)).toBe(fn)
     })
   })
@@ -88,6 +84,7 @@ describe('[deepClone]', () => {
     it('handles empty objects', () => {
       const obj = {}
       const clone = deepClone(obj)
+
       expect(clone).toEqual({})
       expect(clone).not.toBe(obj)
     })
@@ -119,7 +116,7 @@ describe('[deepClone]', () => {
     })
 
     it('handles arrays with nested arrays', () => {
-      const obj = { matrix: [[1, 2], [3, [4, 5]]] }
+      const obj = { matrix: [ [1, 2], [3, [4, 5] ] ] }
       const clone = deepClone(obj)
 
       expect(clone.matrix).not.toBe(obj.matrix)
@@ -131,13 +128,18 @@ describe('[deepClone]', () => {
     it('handles empty arrays', () => {
       const obj = { items: [] }
       const clone = deepClone(obj)
+
       expect(clone.items).toEqual([])
       expect(clone.items).not.toBe(obj.items)
     })
 
     it('handles sparse arrays', () => {
-      const arr = [1, , 3] as any
+      const arr = new Array(3) as any
+
+      arr[0] = 1
+      arr[2] = 3
       const clone = deepClone(arr)
+
       expect(clone[0]).toBe(1)
       expect(clone[2]).toBe(3)
     })
@@ -173,11 +175,38 @@ describe('[deepClone]', () => {
       expect(clone.nested.regular).toBe(true)
     })
 
-    it('deepClone throws on circular references (no circular handling in current impl)', () => {
+    it('cuts circular references to null instead of overflowing the call stack', () => {
       const obj: any = { name: 'test' }
+
       obj.self = obj // Create circular ref
 
-      expect(() => deepClone(obj)).toThrow(Error)
+      const clone = deepClone(obj)
+
+      expect(clone.name).toBe('test')
+      expect(clone.self).toBe(null)
+    })
+
+    it('cuts circular references inside nested arrays', () => {
+      const obj: any = { items: [{ value: 1 }] }
+
+      obj.items[0].parent = obj
+
+      const clone = deepClone(obj)
+
+      expect(clone.items[0].value).toBe(1)
+      expect(clone.items[0].parent).toBe(null)
+    })
+
+    it('clones shared (aliased) references as independent copies, not as circular', () => {
+      const shared = { value: 42 }
+      const obj = { a: shared, b: shared, list: [shared] }
+
+      const clone = deepClone(obj)
+
+      expect(clone.a).toEqual({ value: 42 })
+      expect(clone.b).toEqual({ value: 42 })
+      expect(clone.list[0]).toEqual({ value: 42 })
+      expect(clone.a).not.toBe(shared)
     })
 
     it('preserves functions as-is when they are properties inside an object', () => {
@@ -189,8 +218,8 @@ describe('[deepClone]', () => {
       expect(typeof clone.fn).toBe('function')
       expect(clone.fn()).toBe(42)
       expect(clone.name).toBe('test')
-     })
-   })
+    })
+  })
 })
 
 
@@ -224,15 +253,15 @@ describe('[isReactElement]', () => {
     expect(isReactElement(mockReactElement('span', { className: 'test' }))).toBe(true)
   })
 
-    it('returns false for non-react elements', () => {
-      expect(isReactElement(null)).toBe(false)
-      expect(isReactElement(undefined)).toBe(false)
-      expect(isReactElement({ noSymbol: 'here' })).toBe(false)
-      // Note: isReactElement checks !!(obj.$$typeof) — any truthy $$typeof marks it as react element
-      expect(isReactElement({ $$typeof: null })).toBe(false)
-      expect(isReactElement({ $$typeof: 0 })).toBe(false)
-      expect(isReactElement(42)).toBe(false)
-    })
+  it('returns false for non-react elements', () => {
+    expect(isReactElement(null)).toBe(false)
+    expect(isReactElement(undefined)).toBe(false)
+    expect(isReactElement({ noSymbol: 'here' })).toBe(false)
+    // Note: isReactElement checks !!(obj.$$typeof) — any truthy $$typeof marks it as react element
+    expect(isReactElement({ $$typeof: null })).toBe(false)
+    expect(isReactElement({ $$typeof: 0 })).toBe(false)
+    expect(isReactElement(42)).toBe(false)
+  })
 
   it('does not throw on primitives', () => {
     expect(() => isReactElement(42)).not.toThrow()
@@ -262,6 +291,7 @@ describe('[isValidReactiveObject]', () => {
 
   it('returns false for non-reactive marked objects', () => {
     const obj = { test: 123 }
+
     Object.defineProperty(obj, nonReactiveObjectSymbol, {
       value: true,
       enumerable: false,
@@ -282,12 +312,14 @@ describe('[isValidReactiveObject]', () => {
 describe('[contentComparer]', () => {
   it('returns true for identical objects', () => {
     const a = { name: 'test', count: 5 }
+
     expect(contentComparer(a, { name: 'test', count: 5 })).toBe(true)
   })
 
   it('returns true for deeply equal objects', () => {
     const a = { user: { name: 'test', nested: { value: 42 } } }
     const b = { user: { name: 'test', nested: { value: 42 } } }
+
     expect(contentComparer(a, b)).toBe(true)
   })
 
@@ -302,9 +334,11 @@ describe('[contentComparer]', () => {
   it('handles nested arrays', () => {
     const a = { items: [1, 2, { nested: true }] }
     const b = { items: [1, 2, { nested: true }] }
+
     expect(contentComparer(a, b)).toBe(true)
 
     const c = { items: [1, 2, { nested: false }] }
+
     expect(contentComparer(a, c)).toBe(false)
   })
 
@@ -318,6 +352,7 @@ describe('[safeToJson]', () => {
   it('converts plain objects to plain records', () => {
     const obj = { name: 'test', count: 42 }
     const result = safeToJson(obj)
+
     expect(result).toEqual({ name: 'test', count: 42 })
     expect(JSON.stringify(result)).toBe('{"name":"test","count":42}')
   })
@@ -325,12 +360,14 @@ describe('[safeToJson]', () => {
   it('handles nested objects', () => {
     const obj = { user: { name: 'test', nested: { value: true } } }
     const result = safeToJson(obj)
+
     expect(result).toEqual({ user: { name: 'test', nested: { value: true } } })
   })
 
   it('handles arrays', () => {
     const obj = { items: [1, 'two', { three: 3 }] }
     const result = safeToJson(obj)
+
     expect(result).toEqual({ items: [1, 'two', { three: 3 }] })
   })
 
@@ -367,6 +404,53 @@ describe('[safeToJson]', () => {
     expect(safeToJson({})).toEqual({})
     expect(safeToJson([])).toEqual([])
     expect(safeToJson({ arr: [] })).toEqual({ arr: [] })
+  })
+
+  it('cuts circular references to null instead of overflowing the call stack', () => {
+    const obj: any = { name: 'test' }
+
+    obj.self = obj
+
+    const result = safeToJson(obj)
+
+    expect(result.name).toBe('test')
+    expect(result.self).toBe(null)
+    expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it('serializes shared (aliased) references normally, not as circular', () => {
+    const shared = { value: 42 }
+    const obj = { a: shared, b: shared }
+
+    const result = safeToJson(obj)
+
+    expect(result.a).toEqual({ value: 42 })
+    expect(result.b).toEqual({ value: 42 })
+  })
+
+  it('does not traverse React fiber-like nodes (they contain circular internals)', () => {
+    // Fibers link parent/child circularly: child.return === parent
+    const fiberParent: any = { tag: 5, stateNode: {}, child: null, sibling: null }
+    const fiberChild: any = { tag: 5, stateNode: {}, child: null, return: fiberParent }
+
+    fiberParent.child = fiberChild
+
+    const result = safeToJson({ fiber: fiberChild })
+
+    expect(result.fiber).toEqual({ type: '[ReactNode]' })
+    expect(() => JSON.stringify(result)).not.toThrow()
+  })
+
+  it('handles a DOM-element-like object holding a circular fiber (dom refs stored in objects)', () => {
+    // React stamps `__reactFiber$xyz` as an own enumerable prop on DOM nodes
+    const fiberParent: any = { tag: 5, stateNode: {}, child: null }
+    const fiberChild: any = { tag: 5, stateNode: {}, return: fiberParent }
+
+    fiberParent.child = fiberChild
+
+    const domElementLike = { __reactFiber$abc123: fiberChild, __reactProps$abc123: { onClick: () => {} } }
+
+    expect(() => JSON.stringify(safeToJson({ el: domElementLike }))).not.toThrow()
   })
 
   it('handles deeply nested structures with mixed types', () => {
@@ -427,6 +511,7 @@ describe('[getPartialObjectFromProperties]', () => {
 describe('[okTarget]', () => {
   it('returns target when INTERNAL_VALUE_PROP does not exist', () => {
     const target = { name: 'test' }
+
     // @ts-expect-error - testing internal function
     expect(okTarget(target)).toBe(target)
   })
@@ -434,13 +519,14 @@ describe('[okTarget]', () => {
   it('returns INTERNAL_VALUE_PROP when it exists', () => {
     const obj = { name: 'test' }
     const target = { $$value$$: obj } as any
+
     // @ts-expect-error - testing internal function
     expect(okTarget(target)).toBe(obj)
   })
 
   it('falls back to target when INTERNAL_VALUE_PROP is undefined', () => {
-    const obj = { name: 'test' }
     const target = { $$value$$: undefined } as any
+
     // @ts-expect-error - testing internal function
     expect(okTarget(target)).toBe(target)
   })
@@ -455,6 +541,7 @@ describe('[nonReactiveObjectSymbol]', () => {
 
   it('symbol can mark an object as non-reactive', () => {
     const obj = { test: 1 }
+
     Object.defineProperty(obj, nonReactiveObjectSymbol, {
       value: true,
       enumerable: false,

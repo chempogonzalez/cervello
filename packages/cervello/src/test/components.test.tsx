@@ -564,6 +564,80 @@ describe('[_CERVELLO_]', () => {
           assertNumOfRenders(1, 'ChildSchema')
         }, { timeout: 250 })
       })
+
+
+      it('  initialValue is executed only ONCE per mount (useState-like) even with many re-renders', async () => {
+        const initialValueFn = vi.fn().mockImplementation((s: any) => ({ ...s, seeded: true }))
+        const { store: localStore, useStore } = cervello<any>({ seeded: false, count: 0 })
+
+        const SeededComponent = () => {
+          const [localCount, setLocalCount] = useState(0)
+          const s = useStore({ initialValue: initialValueFn })
+
+          return (
+            <div>
+              <pre data-testid='seeded-content'>{String(s.seeded)}</pre>
+              <button onClick={() => { setLocalCount(localCount + 1) }}>force re-render</button>
+            </div>
+          )
+        }
+
+        render(<SeededComponent />)
+
+        // Synchronous initialization during the first render (SSR-friendly)
+        expect(initialValueFn).toHaveBeenCalledTimes(1)
+        expect(localStore.$value.seeded).toBe(true)
+        expect(screen.getByTestId('seeded-content').textContent).toBe('true')
+
+        const button = screen.getByText('force re-render')
+
+        await act(async () => {
+          await userEvent.click(button)
+        })
+        await act(async () => {
+          await userEvent.click(button)
+        })
+        await act(async () => {
+          await userEvent.click(button)
+        })
+
+        // Re-renders must NOT re-execute the initialValue function
+        expect(initialValueFn).toHaveBeenCalledTimes(1)
+      })
+
+
+      it('  initialValue equal to current store does not re-run comparisons nor notify anyone', async () => {
+        const initialValueFn = vi.fn().mockImplementation((s: any) => s)
+        const { useStore } = cervello<any>({ value: 1 })
+
+        const SameValueComponent = () => {
+          const [numOfRenders] = useLogRenders('same-value')
+          const [localCount, setLocalCount] = useState(0)
+
+          useStore({ initialValue: initialValueFn })
+
+          return (
+            <div>
+              {numOfRenders}
+              <button onClick={() => { setLocalCount(localCount + 1) }}>re-render</button>
+            </div>
+          )
+        }
+
+        render(<SameValueComponent />)
+
+        const button = screen.getByText('re-render')
+
+        await act(async () => {
+          await userEvent.click(button)
+        })
+
+        await sleep(50)
+
+        // Only executed on first render, and no store notification was emitted
+        expect(initialValueFn).toHaveBeenCalledTimes(1)
+        assertNumOfRenders(1, 'same-value')
+      })
     })
 
 
@@ -649,6 +723,45 @@ describe('[_CERVELLO_]', () => {
 
         assertNumOfRenders(1)
         expect(onChangeMockFunction).toHaveBeenCalledTimes(1)
+      })
+
+      it('  onChange - Always sees the latest closure values (subscription created once, no stale options)', async () => {
+        const { store: localStore, useStore } = cervello<any>({ value: 0 })
+        const seenLocalCounts: Array<number> = []
+
+        const StaleClosureComponent = () => {
+          const [localCount, setLocalCount] = useState(0)
+
+          useStore({
+            select: ['value'],
+            onChange: () => { seenLocalCounts.push(localCount) },
+          })
+
+          return (
+            <button onClick={() => { setLocalCount(localCount + 1) }}>increment local</button>
+          )
+        }
+
+        render(<StaleClosureComponent />)
+
+        const button = screen.getByText('increment local')
+
+        // Re-render the component so the inline onChange closure changes
+        await act(async () => {
+          await userEvent.click(button)
+        })
+        await act(async () => {
+          await userEvent.click(button)
+        })
+
+        await act(async () => {
+          localStore.value = 42
+        })
+
+        await waitFor(() => {
+          // The onChange executed must be the one from the LAST render (localCount = 2)
+          expect(seenLocalCounts).toEqual([2])
+        }, { timeout: 100 })
       })
     })
 
