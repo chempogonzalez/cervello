@@ -18,7 +18,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
   opts: {
     nestedFieldPath?: string
     parentObjectToProxify?: any
-    // beforeChange?: (storeChange: StoreChange<T>) => any
     afterChange?: (storeChange: Array<StoreChange<T>>) => void
   } = {},
 ): T {
@@ -48,14 +47,12 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           // Remove react-elements with circular which have circular references
           // before stringifying to prevent JSON.stringify(storeProxy) from failing
           return safeToJson(target)
-          // return removeCircularReferences(target)
         }
       }
 
       // Get the whole store value without proxies
       if (propName === '$value')
         return deepClone(target)
-        // return target
 
 
 
@@ -70,10 +67,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       // Check if it's correct to be a reactive object
       // & is not a circular reference or the same object
       if (isValidReactiveObject(propertyValue) && propertyValue !== target) {
-        // const newNestedFieldPath = `${fieldPath}.${propName}`
-
         // If it's already a proxified object, return it
-        // if (propertyValue._$fieldPath === newNestedFieldPath) return propertyValue
         if (propertyValue._$fieldPath) return propertyValue
 
         // Create a new proxified object
@@ -83,7 +77,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           {
             nestedFieldPath: `${fieldPath}.${propName}`,
             parentObjectToProxify: opts.parentObjectToProxify ?? target,
-            // beforeChange: opts.beforeChange,
             afterChange: opts.afterChange,
           },
         )
@@ -126,7 +119,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         if (value === previousValue) return true
 
         if (JSON.stringify(safeToJson(value)) === JSON.stringify(safeToJson(previousValue))) return true
-        // if (safeStringify(value) === safeStringify(previousValue)) return true
 
         if (fieldPath !== 'root') {
           (parentObject as any)[ROOT_VALUE] = value
@@ -195,63 +187,6 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
   })
 }
-
-
-// function getDeepUnproxiedObject (obj: any): any {
-//   if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-//     if (obj[ROOT_VALUE]?.[ROOT_VALUE]) {
-//       console.warn('Circular reference detected in getDeepUnproxiedObject')
-//
-//       return '[Circular reference]'
-//     }
-//
-//
-//     const r = Object.fromEntries(
-//       Object.entries(obj).map(([key, value]) => {
-//         // console.log('____________________getDeepUnproxiedObject', key, value, value.constructor.name)
-//         if (value && typeof value === 'object' && !Array.isArray(value)) {
-//           if (key === 'links') console.log('getDeepUnproxiedObject', key, value)
-//
-//           // If it's a proxied object, get the unproxied value
-//           return [key, getDeepUnproxiedObject(value)]
-//         }
-//
-//         return [key, value]
-//       }),
-//     )
-//
-//
-//     return r
-//   }
-//
-//   return obj
-// }
-
-// function safeStringify (obj: any): string {
-//   // use removeCircularReferences to avoid circular references
-//   // const cleanedObj = removeCircularReferences(obj)
-//   return JSON.stringify(safeToJson(obj))
-//   //
-//   // return JSON.stringify(
-//   //   obj,
-//   //   (_key, value) => {
-//   //     if (Array.isArray(value)) return value.map(i => safeStringify(i))
-//   //
-//   //     if (isReactElement(value)) {
-//   //       // console.log('React element detected', value)
-//   //
-//   //       return { props: safeStringify(value.props), type: typeof value.type === 'string' ? value.type : '' }
-//   //     }
-//   //
-//   //     if (globalThis?.HTMLElement && value instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: value.innerHTML }
-//   //
-//   //     // console.log('Value', value)
-//   //
-//   //     return value
-//   //   })
-// }
-
-
 
 
 // function removeCircularReferences (obj: any): any {

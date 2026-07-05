@@ -11,10 +11,6 @@ import type { FieldPath, StoreChange } from '../../types/shared'
 
 
 
-// export type CervelloOptions<StoreValue extends Record<string, any>> = {
-//   beforeChange?: (storeChange: StoreChange<StoreValue>) => unknown | undefined
-//   afterChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
-// }
 
 export type CervelloOptions<StoreValue extends Record<string, any>> = {
   afterChange?: (storeChange: Array<StoreChange<StoreValue>>) => void
@@ -82,7 +78,6 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
     },
     useStore: (options) => {
       const subscriberId = useId()
-      // const initialValue = options?.initialValue?.(proxiedStore.$value)
       const initialValue = useRef(options?.initialValue?.(proxiedStore.$value)).current
       const isInitialValueSet = useRef(false)
       const [, setRenderCount] = useState(0)
