@@ -638,6 +638,35 @@ describe('[_CERVELLO_]', () => {
         expect(initialValueFn).toHaveBeenCalledTimes(1)
         assertNumOfRenders(1, 'same-value')
       })
+
+
+      it('  initialValue keeps top-level store functions when returning a fresh object', async () => {
+        const { store: fnStore, useStore } = cervello<any>({
+          count: 1,
+          increment () { this.count = (this.count as number) + 1 },
+        })
+
+        const FreshValueComponent = () => {
+          const s = useStore({ initialValue: () => ({ count: 100 }) })
+
+          return (<pre data-testid='fn-content'>{String(s.count)}</pre>)
+        }
+
+        render(<FreshValueComponent />)
+
+        // Initialized synchronously and the store function survived the replacement
+        expect(fnStore.count).toBe(100)
+        expect(typeof fnStore.increment).toBe('function')
+
+        await act(async () => {
+          fnStore.increment()
+        })
+
+        await waitFor(() => {
+          expect(fnStore.count).toBe(101)
+          expect(screen.getByTestId('fn-content').textContent).toBe('101')
+        }, { timeout: 100 })
+      })
     })
 
 

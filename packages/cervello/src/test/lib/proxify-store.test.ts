@@ -589,13 +589,11 @@ describe('[proxifyStore]', () => {
       expect(capturedChanges[0].change.previousValue).toBe('test')
     })
 
-    it('storeValue contains parent object in change', async () => {
+    it('storeValue contains parent object in change (raw data, without Proxy instances)', async () => {
       const initial = { user: { name: 'test' } }
       const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
 
       capturedChanges = []
-
-      const parentRef = proxy.user
 
       proxy.user.name = 'changed'
 
@@ -603,7 +601,9 @@ describe('[proxifyStore]', () => {
 
       expect(capturedChanges.length).toBeGreaterThan(0)
       expect(capturedChanges[0].storeValue).toBeDefined()
-      expect(capturedChanges[0].storeValue.user).toBe(parentRef)
+      // storeValue exposes the raw store data (kept clean of Proxy instances)
+      expect(capturedChanges[0].storeValue.user).toBe(initial.user)
+      expect(capturedChanges[0].storeValue.user.name).toBe('changed')
     })
 
     it('nested objects are automatically proxified on access', async () => {
@@ -700,6 +700,165 @@ describe('[proxifyStore]', () => {
 
       expect(proxy[symKey]).toBe('symbol')
       expect(Object.keys(proxy)).toContain('name')
+    })
+  })
+
+  describe('clean raw data (child-proxy cache)', () => {
+    it('accessing nested objects does not write Proxy instances into the raw data', async () => {
+      const rawUser = { name: 'test', nested: { age: 25 } }
+      const initial = { user: rawUser }
+      const proxy = proxifyStore(store$$, initial)
+
+      // Force nested proxy creation at two levels
+      expect(proxy.user.nested.age).toBe(25)
+
+      // The raw data must keep the original references untouched
+      expect(initial.user).toBe(rawUser)
+      expect(initial.user.nested).toBe(rawUser.nested)
+    })
+
+    it('keeps the same child proxy when reassigning a content-equal object', async () => {
+      const initial = { links: { nested: { test: 1 } } }
+      const proxy = proxifyStore(store$$, initial)
+
+      const linksProxy1 = proxy.links
+
+      proxy.links = { nested: { test: 1 } }
+
+      await sleep(20)
+
+      expect(proxy.links).toBe(linksProxy1)
+    })
+
+    it('assigning a store proxy into another field stores its raw value, not the Proxy', async () => {
+      const initial = { a: { x: 1 }, b: null } as any
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      proxy.b = proxy.a
+
+      await sleep(20)
+
+      // Raw slot holds the raw object (shared with `a`), not a Proxy
+      expect(initial.b).toBe(initial.a)
+      // @ts-expect-error - internal field for testing
+      expect(initial.b._$fieldPath).toBeUndefined()
+
+      capturedChanges = []
+      proxy.b.x = 5
+
+      await sleep(20)
+
+      // Writing through `b` emits its own fieldPath and mutates the shared raw
+      expect(capturedChanges[0].change.fieldPath).toBe('b.x')
+      expect(proxy.a.x).toBe(5)
+    })
+
+    it('aliased objects reachable from two fields get their own fieldPath each', async () => {
+      const shared = { x: 1 }
+      const initial = { a: shared, b: shared }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      proxy.a.x = 2
+
+      await sleep(20)
+
+      expect(capturedChanges[0].change.fieldPath).toBe('a.x')
+
+      capturedChanges = []
+      proxy.b.x = 3
+
+      await sleep(20)
+
+      expect(capturedChanges[0].change.fieldPath).toBe('b.x')
+    })
+
+    it('same property name at different nesting levels gets independent proxies', async () => {
+      const initial = { test: { data: { value: 1 }, item: { data: { value: 2 } } } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      const outerData = proxy.test.data
+      const innerData = proxy.test.item.data
+
+      // Independent proxies with correct values and fieldPaths (each level
+      // has its own childProxies Map, so the `data` key cannot collide)
+      expect(outerData).not.toBe(innerData)
+      expect(outerData.value).toBe(1)
+      expect(innerData.value).toBe(2)
+      // @ts-expect-error - internal field for testing
+      expect(outerData._$fieldPath).toBe('root.test.data')
+      // @ts-expect-error - internal field for testing
+      expect(innerData._$fieldPath).toBe('root.test.item.data')
+
+      // Cache identity is stable per level (no cross-level overwrite)
+      expect(proxy.test.data).toBe(outerData)
+      expect(proxy.test.item.data).toBe(innerData)
+
+      // Writes emit their own fieldPath and do not cross-contaminate
+      proxy.test.data.value = 10
+
+      await sleep(20)
+
+      expect(capturedChanges[0].change.fieldPath).toBe('test.data.value')
+      expect(proxy.test.item.data.value).toBe(2)
+
+      capturedChanges = []
+      proxy.test.item.data.value = 20
+
+      await sleep(20)
+
+      expect(capturedChanges[0].change.fieldPath).toBe('test.item.data.value')
+      expect(proxy.test.data.value).toBe(10)
+
+      // Reassigning one of them re-points only its own cached proxy
+      proxy.test.data = { value: 99 }
+
+      await sleep(20)
+
+      expect(proxy.test.data).toBe(outerData)
+      expect(proxy.test.data.value).toBe(99)
+      expect(proxy.test.item.data.value).toBe(20)
+    })
+  })
+
+  describe('$$value internal setter', () => {
+    it('merges top-level store functions like $value does', async () => {
+      const initial = {
+        count: 1,
+        increment () { this.count = this.count + 1 },
+      } as any
+      const proxy = proxifyStore(store$$, initial)
+
+      // Fresh value without the store functions (like a useStore initialValue result)
+      proxy.$$value = { id: 'subscriber-1', newValue: { count: 10 } }
+
+      await sleep(20)
+
+      expect(proxy.count).toBe(10)
+      expect(typeof proxy.increment).toBe('function')
+
+      proxy.increment()
+
+      await sleep(20)
+
+      expect(proxy.count).toBe(11)
+    })
+
+    it('does not notify the subscriber that originated the change, but notifies the rest', async () => {
+      const initial = { value: 0 }
+      const proxy = proxifyStore(store$$, initial) as any
+
+      const notifiedA: Array<any> = []
+      const notifiedB: Array<any> = []
+
+      store$$.subscribe({ id: 'A', next: (c) => { notifiedA.push(c) } })
+      store$$.subscribe({ id: 'B', next: (c) => { notifiedB.push(c) } })
+
+      proxy.$$value = { id: 'A', newValue: { value: 5 } }
+
+      await sleep(20)
+
+      expect(notifiedA.length).toBe(0)
+      expect(notifiedB.length).toBe(1)
     })
   })
 

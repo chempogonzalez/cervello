@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import { nonReactiveObjectSymbol } from '../../types/shared'
 import { proxifyStore } from '../helpers/new-proxify-store'
-import { deepClone, safeToJson } from '../utils/object'
+import { contentComparer, deepClone } from '../utils/object'
 import { createCacheableSubject } from '../utils/subject'
 
 import type { FieldPath, StoreChange } from '../../types/shared'
@@ -95,9 +95,7 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
         const initialValue = options?.initialValue?.(proxiedStore.$value)
 
-        if (initialValue
-          && JSON.stringify(safeToJson(initialValue)) !== JSON.stringify(safeToJson(proxiedStore.$value))
-        )
+        if (initialValue && !contentComparer(initialValue, proxiedStore.$value))
           (proxiedStore as any).$$value = { id: subscriberId, newValue: initialValue }
       }
 

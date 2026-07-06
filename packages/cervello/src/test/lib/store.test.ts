@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { cervello, nonReactive } from '../../lib/store/new-index'
-import { deepClone } from '../../lib/utils/object'
+import { deepClone, isValidReactiveObject } from '../../lib/utils/object'
 
 
 
@@ -136,12 +136,54 @@ describe('[cervello store core]', () => {
       const obj = nonReactive({ value: 42 })
       const { store } = cervello({ data: obj })
 
-      // deepClone copies the symbol property
+      // deepClone copies the symbol property, so the clone keeps the nonReactive mark
       const cloned = deepClone(store.data)
+
+      expect(isValidReactiveObject(cloned)).toBe(false)
 
       // Modifying nonReactive should still work on the original
       obj.value = 999
       expect(obj.value).toBe(999)
+    })
+
+    it('nonReactive wrapper with complex/circular content survives the whole store flow and reset()', async () => {
+      const circular: any = { name: 'x' }
+
+      circular.self = circular
+
+      const complex = nonReactive({ value: new Date(2020, 0, 1), map: new Map([ ['a', 1] ]), circular })
+      const { store, reset } = cervello({ complex, plain: 1 })
+
+      // The store works on a decoupled copy that keeps complex content intact
+      expect(store.complex).not.toBe(complex)
+      expect(store.complex.value).toBeInstanceOf(Date)
+      expect(store.complex.value.getTime()).toBe(complex.value.getTime())
+      expect(store.complex.map).toBeInstanceOf(Map)
+      expect(store.complex.map.get('a')).toBe(1)
+      expect(store.complex.circular.self).toBe(store.complex.circular)
+      expect(() => JSON.stringify(store)).not.toThrow()
+
+      // Mutations inside nonReactive are silent and never touch the caller's object
+      store.complex.map.set('b', 2)
+      await sleep(20)
+      expect(store.complex.map.has('b')).toBe(true)
+      expect(complex.map.has('b')).toBe(false)
+
+      // Reactive fields keep working alongside
+      store.plain = 2
+      await sleep(20)
+      expect(store.plain).toBe(2)
+
+      // reset() restores EVERYTHING to the cervello() initial state, nonReactive included
+      reset()
+      await sleep(20)
+
+      expect(store.plain).toBe(1)
+      expect(store.complex.value).toBeInstanceOf(Date)
+      expect(store.complex.value.getTime()).toBe(complex.value.getTime())
+      expect(store.complex.map.get('a')).toBe(1)
+      expect(store.complex.map.has('b')).toBe(false)
+      expect(store.complex.circular.self).toBe(store.complex.circular)
     })
   })
 

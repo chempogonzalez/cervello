@@ -4,12 +4,71 @@ import { INTERNAL_VALUE_PROP } from '../helpers/constants'
 
 
 /**
+ * Structural clone for nonReactive() subtrees: preserves complex values
+ * (Date, Map, Set) and keeps circular references/aliases intact by mapping
+ * each source object to its clone. Functions, React nodes and any other
+ * class instance (DOM elements included, via the constructor check) are
+ * kept by reference — they cannot be cloned safely
+ */
+function cloneNonReactive (obj: any, refs: WeakMap<object, any>): any {
+  if (!obj || typeof obj !== 'object') return obj
+
+  if (refs.has(obj)) return refs.get(obj)
+
+  if (obj instanceof Date) return new Date(obj.getTime())
+
+  if (isReactObjectLikeNode(obj)) return obj
+
+  if (Array.isArray(obj)) {
+    const arr: Array<any> = []
+
+    refs.set(obj, arr)
+    obj.forEach((item, idx) => { arr[idx] = cloneNonReactive(item, refs) })
+
+    return arr
+  }
+
+  if (obj instanceof Map) {
+    const map = new Map()
+
+    refs.set(obj, map)
+    obj.forEach((v, k) => { map.set(cloneNonReactive(k, refs), cloneNonReactive(v, refs)) })
+
+    return map
+  }
+
+  if (obj instanceof Set) {
+    const set = new Set()
+
+    refs.set(obj, set)
+    obj.forEach((v) => { set.add(cloneNonReactive(v, refs)) })
+
+    return set
+  }
+
+  // Other class instances cannot be cloned generically: keep them by reference
+  if (obj.constructor && obj.constructor !== Object) return obj
+
+  const o: Record<PropertyKey, any> = {}
+
+  refs.set(obj, o)
+  Object.entries(obj).forEach(([key, value]) => { o[key] = cloneNonReactive(value, refs) })
+  Object.getOwnPropertySymbols(obj).forEach((symbol) => { o[symbol] = obj[symbol] })
+
+  return o
+}
+
+
+/**
  * Clones all the provided object and nested properties and it also
  * iterates nested arrays to deepClone them
  *
- * Circular references are considered invalid store values (only React
- * elements/nodes, which are never traversed, may contain them) so they
- * are cut to `null` instead of recursing forever
+ * Circular references are considered invalid store values, so they are cut
+ * to `null` instead of recursing forever. The exceptions are React
+ * elements/nodes (kept by reference) and nonReactive()-wrapped objects,
+ * which are cloned structurally so complex values (Date, Map, Set, circular
+ * references...) survive intact — this keeps the store copy decoupled from
+ * the caller's object and allows reset() to restore the initial state
  *
  * @param obj - base object to be cloned
  * @param ancestors - objects of the current traversal path, to detect cycles
@@ -18,6 +77,16 @@ import { INTERNAL_VALUE_PROP } from '../helpers/constants'
 export function deepClone <T> (obj: T, ancestors = new WeakSet<object>()): T {
   if (!obj || typeof obj !== 'object')
     return obj
+
+  if ((obj as any)[nonReactiveObjectSymbol]) {
+    const cloned = cloneNonReactive(obj, new WeakMap())
+
+    // Keep the mark when the wrapper itself is an exotic object (Map, array...)
+    // whose clone branch does not copy symbol properties
+    if (!cloned[nonReactiveObjectSymbol]) cloned[nonReactiveObjectSymbol] = true
+
+    return cloned
+  }
 
   if (ancestors.has(obj))
     return null as T
@@ -207,10 +276,11 @@ export function getPartialObjectFromProperties<T> (properties: Array<keyof T>, o
 
 
 
-const stringify = (obj: any): string => JSON.stringify(obj)
+const stringify = (obj: any): string => JSON.stringify(safeToJson(obj))
 
 /**
- * Compare 2 provided objects by stringing them
+ * Compare 2 provided objects by stringifying them
+ * (safe against circular references and React internals via safeToJson)
  * @param a - first object
  * @param b - second object
  * @returns boolean
@@ -257,8 +327,9 @@ export function safeToJson (obj: any, ancestors = new WeakSet<object>()): Record
 
   ancestors.add(obj)
 
-  for (const [key, v] of Object.entries(obj))
+  Object.entries(obj).forEach(([key, v]) => {
     o[key] = safeToJson(v, ancestors)
+  })
 
   ancestors.delete(obj)
 

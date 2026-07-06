@@ -1,6 +1,7 @@
 
 import { describe, it, expect } from 'vitest'
 
+import { nonReactive } from '../../lib/store/new-index'
 import {
   deepClone,
   isObject,
@@ -195,6 +196,47 @@ describe('[deepClone]', () => {
 
       expect(clone.items[0].value).toBe(1)
       expect(clone.items[0].parent).toBe(null)
+    })
+
+    it('clones nonReactive-wrapped objects structurally (complex/circular content survives)', () => {
+      const circular: any = { name: 'x' }
+
+      circular.self = circular
+
+      const wrapper = nonReactive({ value: new Date(), map: new Map([ ['a', 1] ]), circular })
+      const obj = { wrapper, plain: { test: 1 } }
+
+      const clone = deepClone(obj)
+
+      // Decoupled copy that preserves complex values and the internal cycles
+      expect(clone.wrapper).not.toBe(wrapper)
+      expect(clone.wrapper.value).toBeInstanceOf(Date)
+      expect(clone.wrapper.value.getTime()).toBe(wrapper.value.getTime())
+      expect(clone.wrapper.map).toBeInstanceOf(Map)
+      expect(clone.wrapper.map).not.toBe(wrapper.map)
+      expect(clone.wrapper.map.get('a')).toBe(1)
+      expect(clone.wrapper.circular.self).toBe(clone.wrapper.circular)
+      expect(clone.plain).not.toBe(obj.plain)
+
+      // The clone keeps the nonReactive mark
+      expect(isValidReactiveObject(clone.wrapper)).toBe(false)
+
+      // Mutating the clone does not touch the original
+      clone.wrapper.map.set('b', 2)
+      expect(wrapper.map.has('b')).toBe(false)
+    })
+
+    it('keeps functions and React elements by reference inside nonReactive clones', () => {
+      const el = mockReactElement('div', { children: 'test' })
+      const fn = (): number => 42
+      const wrapper = nonReactive({ el, fn, nested: { deep: 1 } })
+
+      const clone = deepClone({ wrapper })
+
+      expect(clone.wrapper.el).toBe(el)
+      expect(clone.wrapper.fn).toBe(fn)
+      expect(clone.wrapper.nested).not.toBe(wrapper.nested)
+      expect(clone.wrapper.nested.deep).toBe(1)
     })
 
     it('clones shared (aliased) references as independent copies, not as circular', () => {

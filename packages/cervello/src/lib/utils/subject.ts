@@ -70,12 +70,15 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
       // list to allow new updates to be collected while flushing
       updateList.length = 0
 
-      for (const observer of observerList) {
+      // Plain indexed loops: for...of over arrays makes the build ship Babel's
+      // iterator-interop helpers, which weigh more than this whole module
+      for (let i = 0; i < observerList.length; i++) {
+        const observer = observerList[i]
         const filtered: Array<T> = []
 
-        for (const change of changesSnapshot) {
-          if (change.subscriberId !== observer.id)
-            filtered.push(change.newValue)
+        for (let j = 0; j < changesSnapshot.length; j++) {
+          if (changesSnapshot[j].subscriberId !== observer.id)
+            filtered.push(changesSnapshot[j].newValue)
         }
 
         if (filtered.length > 0)
