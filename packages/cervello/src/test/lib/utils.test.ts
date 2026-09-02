@@ -38,7 +38,7 @@ describe('[deepClone]', () => {
     })
 
     it('returns functions as-is', () => {
-      const fn = () => 42
+      const fn = (): number => 42
 
       expect(deepClone(fn)).toBe(fn)
     })
@@ -252,7 +252,7 @@ describe('[deepClone]', () => {
     })
 
     it('preserves functions as-is when they are properties inside an object', () => {
-      const fn = () => 42
+      const fn = (): number => 42
       const obj = { fn, name: 'test' }
       const clone = deepClone(obj)
 
@@ -386,6 +386,85 @@ describe('[contentComparer]', () => {
 
   it('handles empty objects', () => {
     expect(contentComparer({}, {})).toBe(true)
+  })
+
+  it('ignores key insertion order', () => {
+    expect(contentComparer({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true)
+    expect(contentComparer(
+      { user: { name: 'test', age: 5 } },
+      { user: { age: 5, name: 'test' } },
+    )).toBe(true)
+  })
+
+  it('treats NaN as equal to NaN and different from null', () => {
+    expect(contentComparer({ value: NaN }, { value: NaN })).toBe(true)
+    expect(contentComparer({ value: NaN }, { value: null })).toBe(false)
+    expect(contentComparer({ value: NaN }, { value: 5 })).toBe(false)
+  })
+
+  it('skips undefined-valued keys like JSON does', () => {
+    expect(contentComparer({ a: 1, b: undefined }, { a: 1 })).toBe(true)
+    expect(contentComparer({ a: 1 }, { a: 1, b: undefined })).toBe(true)
+    // An explicit null IS serialized, so it differs from a missing key
+    expect(contentComparer({ a: 1, b: null }, { a: 1 })).toBe(false)
+  })
+
+  it('skips function-valued keys like JSON does', () => {
+    const a = { name: 'test', getName () { return 'a' } }
+    const b = { name: 'test', getName () { return 'b' } }
+
+    expect(contentComparer(a, b)).toBe(true)
+    expect(contentComparer(a, { name: 'test' })).toBe(true)
+  })
+
+  it('treats undefined and function array elements as null', () => {
+    expect(contentComparer([undefined], [null])).toBe(true)
+    expect(contentComparer([() => 1], [null])).toBe(true)
+    expect(contentComparer([1, undefined], [1, null])).toBe(true)
+    expect(contentComparer([1], [1, undefined])).toBe(false)
+  })
+
+  it('compares complex leaves (Date, Map, Set) as opaque values', () => {
+    // Complex objects are not supported as reactive values, so they compare
+    // exactly like their JSON projection: an empty object
+    expect(contentComparer({ d: new Date(0) }, { d: new Date(999) })).toBe(true)
+    expect(contentComparer({ m: new Map([ ['a', 1] ]) }, { m: new Map() })).toBe(true)
+    expect(contentComparer({ s: new Set([1]) }, { s: new Set() })).toBe(true)
+  })
+
+  it('compares React elements through their safeToJson projection', () => {
+    const a = { el: mockReactElement('div', { className: 'x' }) }
+    const b = { el: mockReactElement('div', { className: 'x' }) }
+    const c = { el: mockReactElement('span', { className: 'x' }) }
+
+    expect(contentComparer(a, b)).toBe(true)
+    expect(contentComparer(a, c)).toBe(false)
+  })
+
+  it('handles circular references without overflowing', () => {
+    const a: Record<string, any> = { name: 'test' }
+
+    a.self = a
+    const b: Record<string, any> = { name: 'test' }
+
+    b.self = b
+
+    // Both sides cycle at the same position: equal
+    expect(contentComparer(a, b)).toBe(true)
+
+    const c: Record<string, any> = { name: 'other' }
+
+    c.self = c
+
+    expect(contentComparer(a, c)).toBe(false)
+  })
+
+  it('does not confuse repeated references (aliases) with differences', () => {
+    const shared = { value: 1 }
+    const a = { left: shared, right: shared }
+    const b = { left: { value: 1 }, right: { value: 1 } }
+
+    expect(contentComparer(a, b)).toBe(true)
   })
 })
 

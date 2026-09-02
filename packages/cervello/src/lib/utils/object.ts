@@ -52,8 +52,18 @@ function cloneNonReactive (obj: any, refs: WeakMap<object, any>): any {
   const o: Record<PropertyKey, any> = {}
 
   refs.set(obj, o)
-  Object.entries(obj).forEach(([key, value]) => { o[key] = cloneNonReactive(value, refs) })
-  Object.getOwnPropertySymbols(obj).forEach((symbol) => { o[symbol] = obj[symbol] })
+
+  // Indexed loops: no [key, value] tuple per property (Object.entries) nor
+  // a closure per object (forEach)
+  const keys = Object.keys(obj)
+
+  for (let i = 0; i < keys.length; i++)
+    o[keys[i]] = cloneNonReactive(obj[keys[i]], refs)
+
+  const symbols = Object.getOwnPropertySymbols(obj)
+
+  for (let i = 0; i < symbols.length; i++)
+    o[symbols[i]] = obj[symbols[i]]
 
   return o
 }
@@ -91,24 +101,36 @@ export function deepClone <T> (obj: T, ancestors = new WeakSet<object>()): T {
   if (ancestors.has(obj))
     return null as T
 
-  let newObj = {} as any
-
   if (Array.isArray(obj)) {
     ancestors.add(obj)
-    newObj = obj.map(item => deepClone(item, ancestors))
+    const clonedArray = obj.map(item => deepClone(item, ancestors))
+
     ancestors.delete(obj)
-  } else if (!isReactObjectLikeNode(obj)) {
-    ancestors.add(obj)
-    Object.entries(obj).forEach(([key, value]) => {
-      newObj[key] = deepClone(value, ancestors)
-    })
-    Object.getOwnPropertySymbols(obj).forEach((symbol) => {
-      newObj[symbol] = (obj as any)[symbol]
-    })
-    ancestors.delete(obj)
-  } else {
-    newObj = obj
+
+    return clonedArray as T
   }
+
+  // Keys are computed once and shared with the react-node check, which had
+  // to allocate its own Object.keys per visited object before
+  const keys = Object.keys(obj)
+
+  if (isReactObjectLikeNode(obj, keys)) return obj
+
+  ancestors.add(obj)
+
+  const newObj = {} as any
+
+  // Indexed loops (keys and symbols): no [key, value] tuple per property
+  // (Object.entries) nor a closure per object (forEach) in this hot path
+  for (let i = 0; i < keys.length; i++)
+    newObj[keys[i]] = deepClone((obj as any)[keys[i]], ancestors)
+
+  const symbols = Object.getOwnPropertySymbols(obj)
+
+  for (let i = 0; i < symbols.length; i++)
+    newObj[symbols[i]] = (obj as any)[symbols[i]]
+
+  ancestors.delete(obj)
 
   return newObj as T
 }
@@ -227,11 +249,13 @@ export const isReactElement = (obj: unknown): boolean => {
 }
 
 
-export function isReactObjectLikeNode (obj: unknown): boolean {
+export function isReactObjectLikeNode (obj: unknown, precomputedKeys?: Array<string>): boolean {
   if (!isObject(obj)) return false
   if (isReactElement(obj)) return true
 
-  const objKeys = Object.keys(obj)
+  // Callers traversing the object can pass their own Object.keys() result to
+  // avoid allocating the key array twice per visited object
+  const objKeys = precomputedKeys ?? Object.keys(obj)
   const isReactObjNode = (objKeys.includes('tag') && objKeys.includes('containerInfo'))
         || objKeys.some(k => k.startsWith('__reactContainer'))
         || (objKeys.includes('tag') && objKeys.includes('stateNode'))
@@ -278,14 +302,129 @@ export function getPartialObjectFromProperties<T> (properties: Array<keyof T>, o
 
 const stringify = (obj: any): string => JSON.stringify(safeToJson(obj))
 
+
+// Nodes the JSON projection treats specially (React elements, React
+// internals, DOM elements): compared through safeToJson instead of key-by-key
+const isJsonExoticNode = (obj: any, keys: Array<string>): boolean => (
+  isReactObjectLikeNode(obj, keys)
+  || (!!globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement)
+)
+
+
 /**
- * Compare 2 provided objects by stringifying them
- * (safe against circular references and React internals via safeToJson)
+ * Structural equivalent of comparing the two safeToJson projections, with
+ * early exit and zero string/tree allocations (this runs on every `$value`
+ * set and nested-object reassignment): `undefined`/function-valued keys are
+ * skipped (JSON drops them), such array elements compare as `null`, complex
+ * leaves (Date, Map, Set...) are opaque and circular references only match
+ * when both sides cycle. React/DOM nodes fall back to their safeToJson
+ * projection. Key order is irrelevant and NaN equals NaN — both intended
+ * divergences from the previous stringify-based comparison
+ */
+function deepEqualJson (a: any, b: any, aSeen: WeakSet<object> | null, bSeen: WeakSet<object> | null): boolean {
+  if (a === b) return true
+
+  if (Number.isNaN(a)) return Number.isNaN(b)
+
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false
+
+  // Circular reference (cut by the JSON traversal): equal only if both cycle
+  const aCycles = !!aSeen && aSeen.has(a)
+  const bCycles = !!bSeen && bSeen.has(b)
+
+  if (aCycles || bCycles) return aCycles && bCycles
+
+  const aIsArray = Array.isArray(a)
+
+  if (aIsArray !== Array.isArray(b)) return false
+
+  // Ancestor tracking is paid lazily, right before the first recursion into
+  // an object-typed value: flat objects (the hot case) never touch a WeakSet
+  let tracked = false
+
+  let result = true
+
+  if (aIsArray) {
+    result = a.length === b.length
+
+    for (let i = 0; result && i < a.length; i++) {
+      const aItem = a[i] === undefined || typeof a[i] === 'function' ? null : a[i]
+      const bItem = b[i] === undefined || typeof b[i] === 'function' ? null : b[i]
+
+      if (!tracked && ((aItem && typeof aItem === 'object') || (bItem && typeof bItem === 'object'))) {
+        tracked = true
+        aSeen = aSeen ?? new WeakSet()
+        bSeen = bSeen ?? new WeakSet()
+        aSeen.add(a)
+        bSeen.add(b)
+      }
+
+      result = deepEqualJson(aItem, bItem, aSeen, bSeen)
+    }
+  } else {
+    const aKeys = Object.keys(a)
+    const bKeys = Object.keys(b)
+
+    if (isJsonExoticNode(a, aKeys) || isJsonExoticNode(b, bKeys)) {
+      result = stringify(a) === stringify(b)
+    } else {
+      // Compare by key name (order-independent), skipping values JSON drops.
+      // `serializableBalance` nets a's comparable keys against b's, so b
+      // cannot hide extra keys behind matching ones
+      let serializableBalance = 0
+
+      for (let i = 0; result && i < aKeys.length; i++) {
+        const aValue = a[aKeys[i]]
+
+        if (aValue === undefined || typeof aValue === 'function') continue
+
+        serializableBalance++
+        const bValue = b[aKeys[i]]
+
+        if (bValue === undefined || typeof bValue === 'function') {
+          result = false
+        } else {
+          if (!tracked && ((aValue && typeof aValue === 'object') || (bValue && typeof bValue === 'object'))) {
+            tracked = true
+            aSeen = aSeen ?? new WeakSet()
+            bSeen = bSeen ?? new WeakSet()
+            aSeen.add(a)
+            bSeen.add(b)
+          }
+
+          result = deepEqualJson(aValue, bValue, aSeen, bSeen)
+        }
+      }
+
+      if (result) {
+        for (let i = 0; i < bKeys.length; i++) {
+          const bValue = b[bKeys[i]]
+
+          if (bValue !== undefined && typeof bValue !== 'function') serializableBalance--
+        }
+
+        result = serializableBalance === 0
+      }
+    }
+  }
+
+  if (tracked) {
+    (aSeen as WeakSet<object>).delete(a);
+    (bSeen as WeakSet<object>).delete(b)
+  }
+
+  return result
+}
+
+
+/**
+ * Compare 2 provided objects by content
+ * (safe against circular references and React internals)
  * @param a - first object
  * @param b - second object
  * @returns boolean
  */
-export const contentComparer = (a: any, b: any): boolean => stringify(a) === stringify(b)
+export const contentComparer = (a: any, b: any): boolean => deepEqualJson(a, b, null, null)
 
 
 
@@ -318,18 +457,21 @@ export function safeToJson (obj: any, ancestors = new WeakSet<object>()): Record
 
   if (globalThis?.HTMLElement && obj instanceof globalThis.HTMLElement) return { type: '[HTMLElement]', content: obj.innerHTML }
 
+  // Keys computed once, shared between the react-node check and the copy
+  // loop (no [key, value] tuple per property either — hot path)
+  const keys = Object.keys(obj)
+
   // React internals (fibers, containers...) are huge and circular: treat them
   // as opaque values instead of traversing them (same rule as deepClone)
-  if (isReactObjectLikeNode(obj))
+  if (isReactObjectLikeNode(obj, keys))
     return { type: '[ReactNode]' }
 
   const o: Record<string, any> = {}
 
   ancestors.add(obj)
 
-  Object.entries(obj).forEach(([key, v]) => {
-    o[key] = safeToJson(v, ancestors)
-  })
+  for (let i = 0; i < keys.length; i++)
+    o[keys[i]] = safeToJson(obj[keys[i]], ancestors)
 
   ancestors.delete(obj)
 

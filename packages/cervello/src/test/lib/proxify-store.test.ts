@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { proxifyStore } from '../../lib/helpers/new-proxify-store'
+import { proxifyStore, RAW_VALUE } from '../../lib/helpers/new-proxify-store'
 import { createCacheableSubject } from '../../lib/utils/subject'
 
 
@@ -275,8 +275,25 @@ describe('[proxifyStore]', () => {
       expect(capturedChanges.length).toBe(0)
     })
 
+    it('reassigning a nested object with content-equal but reordered keys does not notify', async () => {
+      const initial = { address: { city: 'Madrid', zip: '28001' } }
+      const proxy = proxifyStore(
+        store$$,
+        initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<typeof initial>
+
+      // Access it once so the reassignment goes through the existing child proxy
+      void proxy.address.city
+
+      proxy.address = { zip: '28001', city: 'Madrid' }
+
+      await sleep(20)
+
+      expect(capturedChanges.length).toBe(0)
+      expect(proxy.address.city).toBe('Madrid')
+    })
+
     it('setting entire store preserves functions', async () => {
-      function testFn () { return 42 }
+      function testFn (): number { return 42 }
 
       const initial = { name: 'test', fn: testFn }
       const proxy = proxifyStore(
@@ -321,6 +338,163 @@ describe('[proxifyStore]', () => {
       const proxy = proxifyStore(store$$, initial)
 
       expect(proxy.user.getName()).toBe('nested-test')
+    })
+
+    it('repeated reads return the same bound function reference', async () => {
+      const initial = {
+        name: 'test',
+        getName () {
+          return this.name
+        },
+      }
+      const proxy = proxifyStore(store$$, initial)
+
+      expect(proxy.getName).toBe(proxy.getName)
+    })
+
+    it('cached bound function keeps `this.prop` reads and writes reactive', async () => {
+      const initial = {
+        count: 0,
+        increment () {
+          this.count = this.count + 1
+        },
+      }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      // Two calls: the second one goes through the cached bound function
+      proxy.increment()
+      proxy.increment()
+
+      await sleep(20)
+
+      expect(proxy.count).toBe(2)
+      expect(capturedChanges.length).toBe(2)
+      expect(capturedChanges[0].change.fieldPath).toBe('count')
+      expect(capturedChanges[1].change.newValue).toBe(2)
+    })
+
+    it('reassigning a function property re-binds to the new function', async () => {
+      const initial = {
+        name: 'test',
+        getName () {
+          return this.name
+        },
+      }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<typeof initial>
+
+      const previousBound = proxy.getName
+
+      proxy.getName = function () { return `new-${this.name}` }
+
+      await sleep(20)
+
+      expect(proxy.getName).not.toBe(previousBound)
+      expect(proxy.getName()).toBe('new-test')
+    })
+
+    it('cached bound function reads the CURRENT value after `$value` replacement', async () => {
+      const initial = {
+        count: 0,
+        getCount () {
+          return this.count
+        },
+      }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<typeof initial>
+
+      const boundBefore = proxy.getCount
+
+      proxy.$value = { count: 50 } as any
+
+      await sleep(20)
+
+      // Root functions are preserved on replacement and, being the same raw
+      // function, the cached binding is reused — reading the new value
+      expect(proxy.getCount).toBe(boundBefore)
+      expect(boundBefore()).toBe(50)
+    })
+
+    it('nested function keeps `this` reactive after its parent object is reassigned', async () => {
+      const initial = {
+        counter: {
+          value: 1,
+          increment () {
+            this.value = this.value + 1
+          },
+        },
+      }
+      const proxy = proxifyStore(
+        store$$,
+        initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<typeof initial>
+
+      // Reassign the parent object (through the existing child proxy path)
+      void proxy.counter.value
+      proxy.counter = {
+        value: 10,
+        increment () {
+          this.value = this.value + 5
+        },
+      }
+
+      await sleep(20)
+      capturedChanges = []
+
+      proxy.counter.increment()
+
+      await sleep(20)
+
+      expect(proxy.counter.value).toBe(15)
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('counter.value')
+    })
+  })
+
+  describe('emitted fieldPath edge cases', () => {
+    it('a top-level field literally named `root` emits fieldPath "root"', async () => {
+      const initial = { root: 1 }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      proxy.root = 2
+
+      await sleep(20)
+
+      // Known limitation: it collides with the whole-store sentinel in select
+      expect(capturedChanges[0].change.fieldPath).toBe('root')
+    })
+
+    it('a nested write under a field named `root` emits "root.<key>"', async () => {
+      const initial = { root: { x: 1 } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      proxy.root.x = 2
+
+      await sleep(20)
+
+      expect(capturedChanges[0].change.fieldPath).toBe('root.x')
+    })
+  })
+
+  describe('internal raw access', () => {
+    it('RAW_VALUE returns the raw wrapped object, not a proxy', () => {
+      const rawUser = { name: 'test' }
+      const initial = { user: rawUser }
+      const proxy = proxifyStore(store$$, initial) as any
+
+      expect(proxy[RAW_VALUE]).toBe(initial)
+      expect(proxy.user[RAW_VALUE]).toBe(rawUser)
+      expect(proxy.user[RAW_VALUE]._$fieldPath).toBeUndefined()
+    })
+
+    it('JSON.stringify(proxy) reflects the new value after `$value` replacement', async () => {
+      const initial = { name: 'before' }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<{ name: string }>
+
+      expect(JSON.stringify(proxy)).toBe('{"name":"before"}')
+
+      proxy.$value = { name: 'after' }
+
+      await sleep(20)
+
+      expect(JSON.stringify(proxy)).toBe('{"name":"after"}')
     })
   })
 
@@ -740,7 +914,6 @@ describe('[proxifyStore]', () => {
 
       // Raw slot holds the raw object (shared with `a`), not a Proxy
       expect(initial.b).toBe(initial.a)
-      // @ts-expect-error - internal field for testing
       expect(initial.b._$fieldPath).toBeUndefined()
 
       capturedChanges = []

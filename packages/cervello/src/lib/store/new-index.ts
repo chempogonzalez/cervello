@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { nonReactiveObjectSymbol } from '../../types/shared'
-import { proxifyStore } from '../helpers/new-proxify-store'
+import { proxifyStore, RAW_VALUE } from '../helpers/new-proxify-store'
 import { contentComparer, deepClone } from '../utils/object'
 import { createCacheableSubject } from '../utils/subject'
 
@@ -95,9 +95,17 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
         const initialValue = options?.initialValue?.(proxiedStore.$value)
 
-        if (initialValue && !contentComparer(initialValue, proxiedStore.$value))
+        // Compared against the raw value (not `$value`): contentComparer is
+        // already cycle-safe, so this skips a second full deep clone per mount
+        if (initialValue && !contentComparer(initialValue, (proxiedStore as any)[RAW_VALUE]))
           (proxiedStore as any).$$value = { id: subscriberId, newValue: initialValue }
       }
+
+      // Version of the store this render is based on. Captured AFTER the
+      // `initialValue` seed so the component's own seed does not re-trigger it
+      const seenVersion = useRef(0)
+
+      seenVersion.current = store$$.version()
 
       // `select` is frozen from the first render (computed lazily, once)
       const selectFieldPaths = useRef<Array<FieldPath<StoreValue>> | null>(null)
@@ -113,9 +121,11 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       const selectedFieldPathsForNestedObjects = useRef<Array<string> | null>(null)
 
       if (selectedFieldPathsForNestedObjects.current === null) {
+        // The trailing dot is kept ('address.*' -> 'address.') so matching is
+        // a single startsWith against the dotted changed path
         selectedFieldPathsForNestedObjects.current = selectFieldPaths.current
           .filter(fp => fp.includes('.*'))
-          .map(fp => fp.replace('.*', ''))
+          .map(fp => fp.replace('*', ''))
       }
 
       const reRender = (): void => {
@@ -139,13 +149,20 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       // Subscribed once per mount: `select` is frozen from the first render
       // and the latest callbacks are read through `optionsRef`
       useEffect(() => {
+        // Both refs are frozen from the first render, so they can be captured
+        // once per subscription instead of being re-read on every notification
+        const selectedPaths = selectFieldPaths.current ?? []
+        const wildcardPrefixes = selectedFieldPathsForNestedObjects.current ?? []
+
+        // Changes flushed between the render and this effect (React yields
+        // before the passive-effects task when a commit exceeds the frame
+        // budget) were emitted before the subscription existed — recover them
+        // with one re-render, since reads through the proxy are always live
+        if (store$$.version() !== seenVersion.current) reRender()
+
         const subscription = store$$.subscribe({
           id: subscriberId,
-          next: (sc) => {
-            const storeChanges = Array.isArray(sc)
-              ? sc as Array<StoreChange<StoreValue>>
-              : [sc]
-
+          next: (storeChanges) => {
             const currentOptions = optionsRef.current
 
             if (!currentOptions?.select) {
@@ -155,11 +172,18 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
               return
             }
 
-            if (storeChanges.some(nextChange => (
-              nextChange.change.fieldPath === 'root'
-                || (selectFieldPaths.current ?? []).includes(nextChange.change.fieldPath))
-                || (selectedFieldPathsForNestedObjects.current ?? []).find(fp => nextChange.change.fieldPath.startsWith(fp)),
-            )) {
+            if (storeChanges.some((nextChange) => {
+              const changedPath = nextChange.change.fieldPath
+
+              if (changedPath === 'root' || selectedPaths.includes(changedPath)) return true
+
+              // 'address.*' (kept as 'address.') matches 'address' and
+              // 'address.<nested>', but not a sibling field sharing the
+              // prefix (e.g. 'addressLine')
+              const dottedPath = `${changedPath}.`
+
+              return wildcardPrefixes.some(fp => dottedPath.startsWith(fp))
+            })) {
               reRender()
               currentOptions?.onChange?.(storeChanges)
             }

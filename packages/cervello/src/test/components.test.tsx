@@ -754,6 +754,48 @@ describe('[_CERVELLO_]', () => {
         expect(onChangeMockFunction).toHaveBeenCalledTimes(1)
       })
 
+      it('  Wildcard select does NOT match sibling fields sharing the prefix', async () => {
+        const { store: localStore, useStore } = cervello({
+          address: { city: 'Madrid', street: 'Gran Vía' },
+          addressLine: 'initial',
+        })
+        const renderCounter = vi.fn()
+
+        const WildcardComponent = () => {
+          const s = useStore({ select: ['address.*'] })
+
+          renderCounter()
+
+          return <span data-testid='wildcard-content'>{`${s.address.city}-${s.addressLine}`}</span>
+        }
+
+        render(<WildcardComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Sibling field sharing the 'address' prefix: must NOT re-render
+        await act(async () => {
+          localStore.addressLine = 'changed'
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Nested field under the wildcard: must re-render
+        await act(async () => {
+          localStore.address.city = 'Sevilla'
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+
+        // Reassigning the whole object under the wildcard: must re-render
+        await act(async () => {
+          localStore.address = { city: 'Bilbao', street: 'Ledesma' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(3)
+        expect(screen.getByTestId('wildcard-content').textContent).toBe('Bilbao-changed')
+      })
+
       it('  onChange - Always sees the latest closure values (subscription created once, no stale options)', async () => {
         const { store: localStore, useStore } = cervello<any>({ value: 0 })
         const seenLocalCounts: Array<number> = []

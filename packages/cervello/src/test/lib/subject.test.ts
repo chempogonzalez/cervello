@@ -11,8 +11,8 @@ async function sleep (ms: number): Promise<void> {
 
 
 describe('[CacheableSubject]', () => {
-  // Key insight: due to filtered.map() as T, observer.next always receives an array
-  // The `as T` is a TypeScript hack — at runtime it's always Array
+  // Observers always receive a batched Array<T>: changes are collected and
+  // flushed once per microtask
 
   describe('basic subscribe / next', () => {
     it('observer receives a batched array on next', async () => {
@@ -21,7 +21,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next('hello')
@@ -37,7 +37,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next(1)
@@ -54,7 +54,7 @@ describe('[CacheableSubject]', () => {
       const receivedItems: Array<Array<number>> = []
 
       // @ts-expect-error - no id field, runtime will set id = undefined
-      subject.subscribe({ next: (value: number) => { receivedItems.push(Array.isArray(value) ? value : [value]) } })
+      subject.subscribe({ next: (value: Array<number>) => { receivedItems.push(value) } })
 
       // An observer with id=undefined gets auto-filtered because next() also uses undefined
       subject.next(1)
@@ -71,7 +71,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next(1)
@@ -86,7 +86,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next('a')
@@ -105,7 +105,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next('a')
@@ -125,7 +125,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next(1)
@@ -156,7 +156,7 @@ describe('[CacheableSubject]', () => {
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next('hello', 'sub-1')
@@ -166,18 +166,18 @@ describe('[CacheableSubject]', () => {
     })
 
     it('different subscribers all receive update from general next()', async () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const sub1Received: Array<Array<number>> = []
       const sub2Received: Array<Array<number>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { sub1Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub1Received.push(value) },
       })
 
       subject.subscribe({
         id: 'sub-2',
-        next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub2Received.push(value) },
       })
 
       subject.next(42)
@@ -188,12 +188,12 @@ describe('[CacheableSubject]', () => {
     })
 
     it('subscriber excluded only for matching id', async () => {
-      const subject = createCacheableRecordSubject<string>()
+      const subject = createCacheableSubject<string>()
       const receivedItems: Array<Array<string>> = []
 
       subject.subscribe({
         id: 'my-sub',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       subject.next('x', 'other-sub')
@@ -203,17 +203,17 @@ describe('[CacheableSubject]', () => {
     })
 
     it('general updates (no subscriberId) reach all subscribers', async () => {
-      const subject = createCacheableRecordSubject<boolean>()
+      const subject = createCacheableSubject<boolean>()
       const sub1Received: Array<Array<boolean>> = []
       const sub2Received: Array<Array<boolean>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { sub1Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub1Received.push(value) },
       })
       subject.subscribe({
         id: 'sub-2',
-        next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub2Received.push(value) },
       })
 
       subject.next(true, undefined)
@@ -224,17 +224,17 @@ describe('[CacheableSubject]', () => {
     })
 
     it('mixed: some updates from subscriber, some from global', async () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const sub1Received: Array<Array<number>> = []
       const sub2Received: Array<Array<number>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { sub1Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub1Received.push(value) },
       })
       subject.subscribe({
         id: 'sub-2',
-        next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub2Received.push(value) },
       })
 
       subject.next(1, 'sub-1') // sub-1 excluded
@@ -252,7 +252,7 @@ describe('[CacheableSubject]', () => {
 
   describe('unsubscribe', () => {
     it('unsubscribed observer does not receive future updates', async () => {
-      const subject = createCacheableRecordSubject<string>()
+      const subject = createCacheableSubject<string>()
       const receivedItems: Array<Array<string>> = []
 
       const sub = {
@@ -271,16 +271,16 @@ describe('[CacheableSubject]', () => {
     })
 
     it('unsubscribe multiple times is safe (idempotent)', () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const sub = { id: 'sub-1', next: () => {} }
       const subscription = subject.subscribe(sub)
 
       subscription.unsubscribe()
-      expect(() => subscription.unsubscribe()).not.toThrow()
+      expect(() => { subscription.unsubscribe() }).not.toThrow()
     })
 
     it('other subscribers still receive updates after one unsubscribes', async () => {
-      const subject = createCacheableRecordSubject<string>()
+      const subject = createCacheableSubject<string>()
       const sub1Received: Array<Array<string>> = []
       const sub2Received: Array<Array<string>> = []
 
@@ -309,22 +309,22 @@ describe('[CacheableSubject]', () => {
 
   describe('multiple observers', () => {
     it('all observers receive same batched update', async () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const sub1Received: Array<Array<number>> = []
       const sub2Received: Array<Array<number>> = []
       const sub3Received: Array<Array<number>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { sub1Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub1Received.push(value) },
       })
       subject.subscribe({
         id: 'sub-2',
-        next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub2Received.push(value) },
       })
       subject.subscribe({
         id: 'sub-3',
-        next: (value) => { sub3Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub3Received.push(value) },
       })
 
       subject.next(1)
@@ -337,17 +337,17 @@ describe('[CacheableSubject]', () => {
     })
 
     it('each observer gets deduped updates from own id', async () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const sub1Received: Array<Array<number>> = []
       const sub2Received: Array<Array<number>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { sub1Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub1Received.push(value) },
       })
       subject.subscribe({
         id: 'sub-2',
-        next: (value) => { sub2Received.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { sub2Received.push(value) },
       })
 
       subject.next(1, 'sub-1')
@@ -361,7 +361,7 @@ describe('[CacheableSubject]', () => {
 
   describe('edge cases', () => {
     it('unsubscribe prevents memory leak in observer list', async () => {
-      const subject = createCacheableRecordSubject<string>()
+      const subject = createCacheableSubject<string>()
       const receivedItems: Array<Array<string>> = []
 
       const sub = {
@@ -387,18 +387,18 @@ describe('[CacheableSubject]', () => {
     })
 
     it('next before any subscribe does not throw', () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
 
-      expect(() => subject.next(42)).not.toThrow()
+      expect(() => { subject.next(42) }).not.toThrow()
     })
 
     it('values are passed correctly across multiple batches', async () => {
-      const subject = createCacheableRecordSubject<{ type: string; value: number }>()
+      const subject = createCacheableSubject<{ type: string; value: number }>()
       const receivedBatches: Array<Array<{ type: string; value: number }>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedBatches.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedBatches.push(value) },
       })
 
       subject.next({ type: 'a', value: 1 })
@@ -415,12 +415,12 @@ describe('[CacheableSubject]', () => {
     })
 
     it('updates during microtask delay are all captured', async () => {
-      const subject = createCacheableRecordSubject<number>()
+      const subject = createCacheableSubject<number>()
       const receivedItems: Array<Array<number>> = []
 
       subject.subscribe({
         id: 'sub-1',
-        next: (value) => { receivedItems.push(Array.isArray(value) ? value : [value]) },
+        next: (value) => { receivedItems.push(value) },
       })
 
       for (let i = 0; i < 1000; i++)
@@ -459,12 +459,35 @@ describe('[CacheableSubject]', () => {
       expect(typeof subject.next).toBe('function')
     })
   })
+
+  describe('version', () => {
+    it('increments synchronously per next() call, not per flush', async () => {
+      const subject = createCacheableSubject<number>()
+
+      expect(subject.version()).toBe(0)
+
+      subject.next(1)
+      subject.next(2)
+      subject.next(3)
+
+      // Bumped at write time, before any flush has run
+      expect(subject.version()).toBe(3)
+
+      await sleep(20)
+
+      // The flush itself does not bump the version
+      expect(subject.version()).toBe(3)
+    })
+
+    it('is not affected by subscribe/unsubscribe', () => {
+      const subject = createCacheableSubject<number>()
+      const subscription = subject.subscribe({ id: 'sub-1', next: () => {} })
+
+      expect(subject.version()).toBe(0)
+
+      subscription.unsubscribe()
+
+      expect(subject.version()).toBe(0)
+    })
+  })
 })
-
-
-// Helper for type-correct subject tests that always receive arrays
-type RecordSubject<T> = ReturnType<typeof createCacheableRecordSubject<T>>
-
-function createCacheableRecordSubject<T> (): RecordSubject<T> {
-  return createCacheableSubject<T>()
-}
