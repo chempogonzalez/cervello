@@ -209,6 +209,48 @@ describe('[_CERVELLO_]', () => {
     })
 
 
+    it('  ReactNode as store value renders into the DOM and can be swapped (dynamic modal content)', async () => {
+      const { store: localStore, useStore } = cervello<any>({ modalContent: null })
+
+      const Modal = () => {
+        const s = useStore()
+
+        return <div data-testid='modal-slot'>{s.modalContent}</div>
+      }
+
+      render(<Modal />)
+
+      expect(screen.getByTestId('modal-slot').textContent).toBe('')
+
+      // Elements are stored by reference: never proxified, never cloned
+      const el = <p data-testid='modal-inner'>Hello modal</p>
+
+      await act(async () => {
+        localStore.modalContent = el
+      })
+
+      expect(screen.getByTestId('modal-slot').textContent).toBe('Hello modal')
+      expect(screen.getByTestId('modal-inner')).toBeDefined()
+      expect(localStore.modalContent).toBe(el)
+      expect(localStore.$value.modalContent).toBe(el)
+
+      // Swapping the element re-renders with the new content (direct element
+      // writes always emit — elements never get child proxies to compare through)
+      await act(async () => {
+        localStore.modalContent = <strong>Replaced content</strong>
+      })
+
+      expect(screen.getByTestId('modal-slot').textContent).toBe('Replaced content')
+
+      // And clearing it empties the slot
+      await act(async () => {
+        localStore.modalContent = null
+      })
+
+      expect(screen.getByTestId('modal-slot').textContent).toBe('')
+    })
+
+
 
     it('  nonReactive field', async () => {
       const { store, useStore } = cervello({
@@ -794,6 +836,408 @@ describe('[_CERVELLO_]', () => {
 
         expect(renderCounter).toHaveBeenCalledTimes(3)
         expect(screen.getByTestId('wildcard-content').textContent).toBe('Bilbao-changed')
+      })
+
+      it('  Exact select re-renders on ANCESTOR reassignment only if the selected value changed', async () => {
+        const { store: localStore, useStore } = cervello({
+          address: { city: 'Madrid', zip: '28001' },
+        })
+        const renderCounter = vi.fn()
+
+        const CityComponent = () => {
+          const s = useStore({ select: ['address.city'] })
+
+          renderCounter()
+
+          return <span data-testid='city-content'>{s.address.city}</span>
+        }
+
+        render(<CityComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment that does NOT touch the selected leaf
+        await act(async () => {
+          localStore.address = { city: 'Madrid', zip: '48001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment that DOES change the selected leaf
+        await act(async () => {
+          localStore.address = { city: 'Bilbao', zip: '48001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('city-content').textContent).toBe('Bilbao')
+      })
+
+      it('  Exact select re-renders when a GRANDPARENT reassignment changes the selected value', async () => {
+        const { store: localStore, useStore } = cervello({
+          a: { b: { c: 1 }, other: 'x' },
+        })
+        const renderCounter = vi.fn()
+
+        const DeepComponent = () => {
+          const s = useStore({ select: ['a.b.c'] })
+
+          renderCounter()
+
+          return <span data-testid='deep-content'>{String(s.a.b?.c)}</span>
+        }
+
+        render(<DeepComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Grandparent reassignment keeping a.b.c content-equal: no re-render
+        await act(async () => {
+          localStore.a = { b: { c: 1 }, other: 'changed' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Grandparent reassignment changing a.b.c: re-render
+        await act(async () => {
+          localStore.a = { b: { c: 99 }, other: 'changed' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('deep-content').textContent).toBe('99')
+      })
+
+      it('  Exact select re-renders when the selected leaf DISAPPEARS in the reassignment', async () => {
+        const { store: localStore, useStore } = cervello<any>({
+          address: { city: 'Madrid', zip: '28001' },
+        })
+        const renderCounter = vi.fn()
+
+        const CityComponent = () => {
+          const s = useStore({ select: ['address.city'] })
+
+          renderCounter()
+
+          return <span data-testid='gone-content'>{String(s.address.city)}</span>
+        }
+
+        render(<CityComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+          localStore.address = { zip: '28001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('gone-content').textContent).toBe('undefined')
+      })
+
+      it('  Wildcard select compares its whole SUBTREE on ancestor reassignment', async () => {
+        const { store: localStore, useStore } = cervello({
+          a: { b: { c: 1, d: 2 }, other: 'x' },
+        })
+        const renderCounter = vi.fn()
+
+        const SubtreeComponent = () => {
+          const s = useStore({ select: ['a.b.*'] })
+
+          renderCounter()
+
+          return <span data-testid='subtree-content'>{`${s.a.b.c}-${s.a.b.d}`}</span>
+        }
+
+        render(<SubtreeComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment with a content-equal a.b subtree: no re-render
+        await act(async () => {
+          localStore.a = { b: { c: 1, d: 2 }, other: 'changed' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment changing something inside a.b: re-render
+        await act(async () => {
+          localStore.a = { b: { c: 1, d: 42 }, other: 'changed' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('subtree-content').textContent).toBe('1-42')
+      })
+
+      it('  Root changes ($value / reset) also respect the value-level select refinement', async () => {
+        const { store: localStore, reset: localReset, useStore } = cervello({
+          address: { city: 'Madrid', zip: '28001' },
+          user: 'chempo',
+        })
+        const renderCounter = vi.fn()
+
+        const CityComponent = () => {
+          const s = useStore({ select: ['address.city'] })
+
+          renderCounter()
+
+          return <span data-testid='root-city-content'>{s.address.city}</span>
+        }
+
+        render(<CityComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Whole-store replacement that keeps the selected leaf content-equal
+        await act(async () => {
+          localStore.$value = {
+            address: { city: 'Madrid', zip: '48001' },
+            user: 'someone else',
+          }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Whole-store replacement changing the selected leaf
+        await act(async () => {
+          localStore.$value = {
+            address: { city: 'Bilbao', zip: '48001' },
+            user: 'someone else',
+          }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('root-city-content').textContent).toBe('Bilbao')
+
+        // reset() restores city 'Madrid': the selected leaf changed -> re-render
+        await act(async () => {
+          localReset()
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(3)
+        expect(screen.getByTestId('root-city-content').textContent).toBe('Madrid')
+      })
+
+      it('  onChange - receives the WHOLE batch when an ancestor reassignment passes the refinement, stays silent when refined out', async () => {
+        const onChangeMockFunction = vi.fn()
+        const { store: localStore, useStore } = cervello({
+          address: { city: 'Madrid', zip: '28001' },
+          user: 'chempo',
+        })
+        const renderCounter = vi.fn()
+
+        const CityComponent = () => {
+          const s = useStore({ select: ['address.city'], onChange: onChangeMockFunction })
+
+          renderCounter()
+
+          return <span data-testid='batch-city-content'>{s.address.city}</span>
+        }
+
+        render(<CityComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Two sync writes, same microtask: a non-selected leaf + an ancestor
+        // reassignment that changes the selected leaf -> ONE re-render, and
+        // onChange receives the whole coalesced batch (both changes)
+        await act(async () => {
+          localStore.user = 'someone else'
+          localStore.address = { city: 'Bilbao', zip: '28001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(onChangeMockFunction).toHaveBeenCalledTimes(1)
+        expect(onChangeMockFunction.mock.calls[0][0]).toHaveLength(2)
+
+        // Same shape but the ancestor reassignment keeps the selected leaf
+        // content-equal: the batch is refined out -> no render, no onChange
+        await act(async () => {
+          localStore.user = 'chempo again'
+          localStore.address = { city: 'Bilbao', zip: '48001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(onChangeMockFunction).toHaveBeenCalledTimes(1)
+      })
+
+      it('  select as a FUNCTION applies the same value-level refinement', async () => {
+        const { store: localStore, useStore } = cervello({
+          address: { city: 'Madrid', zip: '28001' },
+        })
+        const renderCounter = vi.fn()
+
+        const CityComponent = () => {
+          const s = useStore({ select: () => ['address.city'] })
+
+          renderCounter()
+
+          return <span data-testid='fn-city-content'>{s.address.city}</span>
+        }
+
+        render(<CityComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+          localStore.address = { city: 'Madrid', zip: '48001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+          localStore.address = { city: 'Bilbao', zip: '48001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('fn-city-content').textContent).toBe('Bilbao')
+      })
+
+      it('  Multiple selected paths: only the one under the reassigned ancestor triggers', async () => {
+        const { store: localStore, useStore } = cervello({
+          user: { name: 'chempo', age: 30 },
+          address: { city: 'Madrid', zip: '28001' },
+        })
+        const renderCounter = vi.fn()
+
+        const MultiComponent = () => {
+          const s = useStore({ select: ['user.name', 'address.city'] })
+
+          renderCounter()
+
+          return <span data-testid='multi-content'>{`${s.user.name}-${s.address.city}`}</span>
+        }
+
+        render(<MultiComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Reassigning `user` keeping `name` content-equal: neither path changed
+        await act(async () => {
+          localStore.user = { name: 'chempo', age: 31 }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Reassigning `address` changing `city`: the second path matches
+        await act(async () => {
+          localStore.address = { city: 'Bilbao', zip: '28001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('multi-content').textContent).toBe('chempo-Bilbao')
+      })
+
+      it('  Refinement shields selected components from content-equal reassignments of NEVER-READ fields', async () => {
+        // A content-equal reassignment only becomes a no-op when the field has
+        // an existing child proxy (i.e. it was read at least once); otherwise
+        // it emits anyway. The value refinement keeps that emission from
+        // re-rendering selectors whose slice did not change
+        const { store: localStore, useStore } = cervello({
+          address: { city: 'Madrid', zip: '28001' },
+          user: 'chempo',
+        })
+        const renderCounter = vi.fn()
+
+        const UserComponent = () => {
+          // Selects (and reads) only `user` — `address` is never read, so no
+          // child proxy exists for it
+          const s = useStore({ select: ['user'] })
+
+          renderCounter()
+
+          return <span data-testid='shield-content'>{s.user}</span>
+        }
+
+        render(<UserComponent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Content-equal reassignment of the never-read field: it emits an
+        // 'address' change, but `user` is not under it -> no re-render
+        await act(async () => {
+          localStore.address = { city: 'Madrid', zip: '28001' }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // And a $value replacement keeping `user` content-equal: the root
+        // change is refined out for this selector too
+        await act(async () => {
+          localStore.$value = {
+            address: { city: 'Bilbao', zip: '48001' },
+            user: 'chempo',
+          }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+          localStore.user = 'someone else'
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('shield-content').textContent).toBe('someone else')
+      })
+
+      it('  ReactNode leaf + select: elements compare through their JSON projection (type + props)', async () => {
+        const { store: localStore, useStore } = cervello<any>({
+          modal: { open: false, content: <p>hi</p> },
+        })
+        const renderCounter = vi.fn()
+
+        const ModalContent = () => {
+          const s = useStore({ select: ['modal.content'] })
+
+          renderCounter()
+
+          return <div data-testid='select-modal-slot'>{s.modal.content}</div>
+        }
+
+        render(<ModalContent />)
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Fresh JSX but structurally equal (same type + props): the child
+        // proxy comparison sees equal content -> no emission at all
+        await act(async () => {
+          localStore.modal = { open: false, content: <p>hi</p> }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment changing only `open`: emits, but the selected
+        // element leaf is projection-equal -> refined out, no re-render
+        await act(async () => {
+          localStore.modal = { open: true, content: <p>hi</p> }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(1)
+
+        // Ancestor reassignment with different element content: re-render
+        await act(async () => {
+          localStore.modal = { open: true, content: <p>bye</p> }
+        })
+
+        expect(renderCounter).toHaveBeenCalledTimes(2)
+        expect(screen.getByTestId('select-modal-slot').textContent).toBe('bye')
+      })
+
+      it('  afterChange fires on reset() and $value replacement, but not on a content-equal reset', async () => {
+        const afterChangeMockFunction = vi.fn()
+        const { store: localStore, reset: localReset } = cervello(
+          { name: 'original' },
+          { afterChange: afterChangeMockFunction },
+        )
+
+        // Pristine store: reset is a content-equal $value set -> no emission, no hook
+        localReset()
+        expect(afterChangeMockFunction).toHaveBeenCalledTimes(0)
+
+        localStore.name = 'changed'
+        expect(afterChangeMockFunction).toHaveBeenCalledTimes(1)
+
+        localReset()
+        expect(afterChangeMockFunction).toHaveBeenCalledTimes(2)
+        expect(afterChangeMockFunction.mock.calls[1][0][0].change.fieldPath).toBe('root')
+        expect(localStore.name).toBe('original')
       })
 
       it('  onChange - Always sees the latest closure values (subscription created once, no stale options)', async () => {

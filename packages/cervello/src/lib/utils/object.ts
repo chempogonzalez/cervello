@@ -300,6 +300,30 @@ export function getPartialObjectFromProperties<T> (properties: Array<keyof T>, o
 
 
 
+/**
+ * Walks a dotted path ('address.city', 'meta.tags') inside an object.
+ * Returns undefined when any segment is missing or an intermediate node
+ * is not traversable (primitive/null)
+ * @param obj - object to walk
+ * @param path - dotted field path, relative to obj
+ * @returns the value at the path, or undefined
+ */
+export function getValueAtPath (obj: any, path: string): any {
+  const segments = path.split('.')
+
+  let current = obj
+
+  for (let i = 0; i < segments.length; i++) {
+    if (current === null || typeof current !== 'object') return undefined
+    current = current[segments[i]]
+  }
+
+  return current
+}
+
+
+
+
 const stringify = (obj: any): string => JSON.stringify(safeToJson(obj))
 
 

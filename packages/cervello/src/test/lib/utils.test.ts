@@ -10,6 +10,7 @@ import {
   contentComparer,
   safeToJson,
   getPartialObjectFromProperties,
+  getValueAtPath,
   okTarget,
 } from '../../lib/utils/object'
 import { nonReactiveObjectSymbol } from '../../types/shared'
@@ -650,6 +651,36 @@ describe('[okTarget]', () => {
 
     // @ts-expect-error - testing internal function
     expect(okTarget(target)).toBe(target)
+  })
+})
+
+
+describe('[getValueAtPath]', () => {
+  it('walks a single-segment path', () => {
+    expect(getValueAtPath({ name: 'chempo' }, 'name')).toBe('chempo')
+  })
+
+  it('walks a nested dotted path', () => {
+    expect(getValueAtPath({ address: { city: 'Madrid' } }, 'address.city')).toBe('Madrid')
+    expect(getValueAtPath({ a: { b: { c: 42 } } }, 'a.b.c')).toBe(42)
+  })
+
+  it('returns the intermediate object itself for non-leaf paths', () => {
+    const address = { city: 'Madrid' }
+
+    expect(getValueAtPath({ address }, 'address')).toBe(address)
+  })
+
+  it('returns undefined for missing segments', () => {
+    expect(getValueAtPath({ address: { city: 'Madrid' } }, 'address.zip')).toBeUndefined()
+    expect(getValueAtPath({ address: { city: 'Madrid' } }, 'billing.city')).toBeUndefined()
+  })
+
+  it('returns undefined when an intermediate node is not traversable', () => {
+    expect(getValueAtPath({ address: 'plain string' }, 'address.city')).toBeUndefined()
+    expect(getValueAtPath({ address: null }, 'address.city')).toBeUndefined()
+    expect(getValueAtPath(null, 'address.city')).toBeUndefined()
+    expect(getValueAtPath(undefined, 'address')).toBeUndefined()
   })
 })
 

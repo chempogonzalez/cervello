@@ -91,7 +91,8 @@ const AddressWithSelector = () => {
 
 - **Batched changes**: mutations are coalesced and flushed once per microtask. `onChange`/`afterChange` receive the whole batch as an array (don't mutate it — it may be shared between subscribers).
 - **No spurious updates**: assigning content-equal values (same primitive, or an object with the same content — key order doesn't matter) does not notify or re-render.
-- **Hot components**: pass `select: ['path', 'nested.*']` to `useStore` so the component only re-renders for those paths; without it, it re-renders on every store change.
+- **Hot components**: pass `select: ['path', 'nested.*']` to `useStore` so the component only re-renders for those paths; without it, it re-renders on every store change. Exact paths match their own writes; `'address.*'` also matches anything nested under `address`. When an **ancestor** is reassigned (`store.address = {...}`, `store.$value = {...}` or `reset()`), the selected slice is compared by content and the component only re-renders if it actually changed.
+- **`afterChange` fires on every emission**: field writes, whole-store replacement (`store.$value = ...`, `reset()`) and `initialValue` seeds — content-equal writes never emit, so they never fire it either.
 - **StrictMode**: `initialValue` is render-phase code (double-invoked in dev — keep it idempotent) and `setValueOnMount` runs on each effect mount, per React's contract.
 - **SSR**: the store is module-scoped. For per-request isolation, call `cervello()` per request and share it via context.
 - **Complex values** (`Date`, `Map`, `Set`, class instances, circular refs): wrap them with `nonReactive(...)` — they are kept intact (and restored by `reset()`) but don't trigger reactivity.

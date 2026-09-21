@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import { nonReactiveObjectSymbol } from '../../types/shared'
 import { proxifyStore, RAW_VALUE } from '../helpers/new-proxify-store'
-import { contentComparer, deepClone } from '../utils/object'
+import { contentComparer, deepClone, getValueAtPath } from '../utils/object'
 import { createCacheableSubject } from '../utils/subject'
 
 import type { FieldPath, StoreChange } from '../../types/shared'
@@ -149,10 +149,14 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
       // Subscribed once per mount: `select` is frozen from the first render
       // and the latest callbacks are read through `optionsRef`
       useEffect(() => {
-        // Both refs are frozen from the first render, so they can be captured
-        // once per subscription instead of being re-read on every notification
+        // All three lists are frozen from the first render, so they can be
+        // captured once per subscription instead of on every notification
         const selectedPaths = selectFieldPaths.current ?? []
         const wildcardPrefixes = selectedFieldPathsForNestedObjects.current ?? []
+
+        // Targets for ancestor-change comparison: exact paths as-is, wildcards
+        // reduced to their base ('address.*' -> 'address')
+        const compareTargets = selectedPaths.map(fp => fp.replace('.*', ''))
 
         // Changes flushed between the render and this effect (React yields
         // before the passive-effects task when a commit exceeds the frame
@@ -174,15 +178,37 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
 
             if (storeChanges.some((nextChange) => {
               const changedPath = nextChange.change.fieldPath
-
-              if (changedPath === 'root' || selectedPaths.includes(changedPath)) return true
-
-              // 'address.*' (kept as 'address.') matches 'address' and
-              // 'address.<nested>', but not a sibling field sharing the
-              // prefix (e.g. 'addressLine')
               const dottedPath = `${changedPath}.`
 
-              return wildcardPrefixes.some(fp => dottedPath.startsWith(fp))
+              if (changedPath !== 'root') {
+                // Path-level matches: the set trap already guaranteed the
+                // written value changed content, so no re-comparison is needed
+                if (selectedPaths.includes(changedPath)) return true
+
+                // 'address.*' (kept as 'address.') matches 'address' and
+                // 'address.<nested>', but not a sibling field sharing the
+                // prefix (e.g. 'addressLine')
+                if (wildcardPrefixes.some(fp => dottedPath.startsWith(fp))) return true
+              }
+
+              // Ancestor changes ('root', or 'address' for 'address.city'):
+              // the selected slice may or may not have changed inside the
+              // reassigned object, so re-render only if its content differs.
+              // Compared at flush time: `newValue` is the live raw, so several
+              // same-microtask writes are seen in their final (converged)
+              // state — same guarantee the batch already gives for storeValue
+              return compareTargets.some((target) => {
+                if (changedPath !== 'root' && !target.startsWith(dottedPath)) return false
+
+                const remainingPath = changedPath === 'root'
+                  ? target
+                  : target.slice(dottedPath.length)
+
+                return !contentComparer(
+                  getValueAtPath(nextChange.change.previousValue, remainingPath),
+                  getValueAtPath(nextChange.change.newValue, remainingPath),
+                )
+              })
             })) {
               reRender()
               currentOptions?.onChange?.(storeChanges)

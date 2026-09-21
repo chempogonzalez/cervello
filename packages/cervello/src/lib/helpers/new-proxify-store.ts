@@ -145,14 +145,17 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         (parentObject as any)[ROOT_VALUE] = Object.assign({}, rootFunctions, value.newValue)
         childProxies.clear()
 
-        store$$.next({
+        const seedChange = {
           storeValue: parentObject[ROOT_VALUE],
           change: {
             fieldPath: 'root' as any,
             newValue: value.newValue,
             previousValue,
           },
-        }, value.id)
+        }
+
+        store$$.next(seedChange, value.id)
+        opts.afterChange?.([seedChange])
 
         return true
       }
@@ -172,7 +175,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
           // `_extends` helper in the bundle
           (parentObject as any)[ROOT_VALUE] = Object.assign({}, rootFunctions, value)
           childProxies.clear()
-          store$$.next({
+
+          const rootChange = {
             // To be disabled for performance and send same store reference
             // storeValue: JSON.parse(JSON.stringify(targetObject[ROOT_VALUE])),
             storeValue: parentObject[ROOT_VALUE],
@@ -181,7 +185,10 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
               newValue: value,
               previousValue,
             },
-          })
+          }
+
+          store$$.next(rootChange)
+          opts.afterChange?.([rootChange])
         }
 
         return true

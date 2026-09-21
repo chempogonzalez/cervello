@@ -275,6 +275,49 @@ describe('[proxifyStore]', () => {
       expect(capturedChanges.length).toBe(0)
     })
 
+    it('setting $value fires afterChange with a root change (synchronously, like field writes)', async () => {
+      const initial = { name: 'original' }
+      const proxy = proxifyStore(
+        store$$,
+        initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<{ name: string }>
+
+      proxy.$value = { name: 'replaced' }
+
+      // afterChange is synchronous at write time — no flush needed
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('root')
+      expect(capturedChanges[0].change.newValue).toEqual({ name: 'replaced' })
+      expect(capturedChanges[0].change.previousValue).toEqual({ name: 'original' })
+    })
+
+    it('setting the internal $$value fires afterChange with a root change', async () => {
+      const initial = { name: 'original' }
+      const proxy = proxifyStore(
+        store$$,
+        initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<{ name: string }>
+
+      ;(proxy as any).$$value = { id: 'subscriber-1', newValue: { name: 'seeded' } }
+
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('root')
+      expect(capturedChanges[0].change.newValue).toEqual({ name: 'seeded' })
+    })
+
+    it('reassigning a nested object fires afterChange once (no double fire from the child $value delegation)', async () => {
+      const initial = { address: { city: 'Madrid' } }
+      const proxy = proxifyStore(
+        store$$,
+        initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<typeof initial>
+
+      // Access it once so the reassignment goes through the existing child proxy
+      void proxy.address.city
+
+      proxy.address = { city: 'Sevilla' }
+
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('address')
+    })
+
     it('reassigning a nested object with content-equal but reordered keys does not notify', async () => {
       const initial = { address: { city: 'Madrid', zip: '28001' } }
       const proxy = proxifyStore(
