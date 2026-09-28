@@ -7,7 +7,7 @@
 <img src="https://github.com/chempogonzalez/cervello/blob/main/assets/emoji-logo.png" style="display:block;">
 </a>
 
-> 🤯 Simple, reactive, tiny and performant state-management library for React _(just 1.5kb)_
+> 🤯 Simple, reactive, tiny and performant state-management library for React _(just 3kb)_
 
 <br>
 <br>
