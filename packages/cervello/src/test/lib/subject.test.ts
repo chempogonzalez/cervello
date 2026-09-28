@@ -1,5 +1,5 @@
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { createCacheableSubject } from '../../lib/utils/subject'
 
@@ -488,6 +488,44 @@ describe('[CacheableSubject]', () => {
       subscription.unsubscribe()
 
       expect(subject.version()).toBe(0)
+    })
+  })
+
+  describe('error isolation', () => {
+    it('an observer that throws neither blocks the other observers nor the next flush', async () => {
+      const subject = createCacheableSubject<number>()
+      const received: Array<Array<number>> = []
+      const rethrown: Array<unknown> = []
+      const realQueueMicrotask = queueMicrotask
+
+      // The subject re-throws observer errors from their own microtask (so
+      // they reach window.onerror): capture them here instead of failing the run
+      vi.stubGlobal('queueMicrotask', (cb: () => void) => {
+        realQueueMicrotask(() => {
+          try { cb() } catch (err) { rethrown.push(err) }
+        })
+      })
+
+      try {
+        subject.subscribe({ id: 'thrower', next: () => { throw new Error('boom') } })
+        subject.subscribe({ id: 'ok', next: (values) => { received.push(values) } })
+
+        subject.next(1)
+        await sleep(20)
+
+        expect(received).toEqual([ [1] ])
+        expect(rethrown.length).toBe(1)
+        expect((rethrown[0] as Error).message).toBe('boom')
+
+        // The store is not stuck: the next write still flushes
+        subject.next(2)
+        await sleep(20)
+
+        expect(received).toEqual([ [1], [2] ])
+        expect(rethrown.length).toBe(2)
+      } finally {
+        vi.unstubAllGlobals()
+      }
     })
   })
 })

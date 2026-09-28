@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react'
+import React, { useLayoutEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { cervello } from '../index'
@@ -101,6 +101,50 @@ describe('[useStore lifecycle - production effect ordering (no act)]', () => {
       await sleep(100)
 
       expect(container.textContent).toBe('5')
+    } finally {
+      root.unmount()
+    }
+  })
+
+
+  it('a handler that sets local state and then writes to the store renders the component ONCE', async () => {
+    const { store, useStore } = cervello({ count: 0 })
+    let renders = 0
+
+    function App (): JSX.Element {
+      const [open, setOpen] = useState(false)
+      const s = useStore()
+
+      renders++
+
+      return (
+        <button
+          onClick={() => {
+            // React renders this SyncLane update in its own microtask, BEFORE
+            // the subject flush; that render already reads the new store
+            // value, so the flush must not force a second render
+            setOpen(true)
+            store.count = 1
+          }}
+        >
+          {String(open)}:{s.count}
+        </button>
+      )
+    }
+
+    const root = createRoot(container)
+
+    try {
+      root.render(<App />)
+      await sleep(50)
+
+      expect(renders).toBe(1)
+
+      container.querySelector('button')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await sleep(50)
+
+      expect(container.textContent).toBe('true:1')
+      expect(renders).toBe(2)
     } finally {
       root.unmount()
     }

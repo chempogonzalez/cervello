@@ -74,7 +74,8 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
   return {
     store: proxiedStore,
     reset: () => {
-      proxiedStore.$value = deepClone(initialValue)
+      // The `$value` setter already stores a deep clone
+      proxiedStore.$value = initialValue
     },
     useStore: (options) => {
       const subscriberId = useId()
@@ -169,8 +170,16 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
           next: (storeChanges) => {
             const currentOptions = optionsRef.current
 
+            // Already rendered after every write flushed so far (e.g. a
+            // handler calls setState and then writes to the store: React
+            // renders the SyncLane update before this microtask runs, and the
+            // render reads the store live) — same check as
+            // useSyncExternalStore's `checkIfSnapshotChanged`, so the render
+            // is skipped while `onChange` still fires
+            const needsRender = store$$.version() !== seenVersion.current
+
             if (!currentOptions?.select) {
-              reRender()
+              if (needsRender) reRender()
               currentOptions?.onChange?.(storeChanges)
 
               return
@@ -180,16 +189,18 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
               const changedPath = nextChange.change.fieldPath
               const dottedPath = `${changedPath}.`
 
-              if (changedPath !== 'root') {
-                // Path-level matches: the set trap already guaranteed the
-                // written value changed content, so no re-comparison is needed
-                if (selectedPaths.includes(changedPath)) return true
+              // Path-level matches: the set trap already guaranteed the
+              // written value changed content, so no re-comparison is needed.
+              // Checked before the 'root' branch: `select` can only contain
+              // 'root' for a top-level field literally named `root`, and
+              // whole-store changes then over-render (safe) instead of being
+              // refined against the field's value
+              if (selectedPaths.includes(changedPath)) return true
 
-                // 'address.*' (kept as 'address.') matches 'address' and
-                // 'address.<nested>', but not a sibling field sharing the
-                // prefix (e.g. 'addressLine')
-                if (wildcardPrefixes.some(fp => dottedPath.startsWith(fp))) return true
-              }
+              // 'address.*' (kept as 'address.') matches 'address' and
+              // 'address.<nested>', but not a sibling field sharing the
+              // prefix (e.g. 'addressLine')
+              if (wildcardPrefixes.some(fp => dottedPath.startsWith(fp))) return true
 
               // Ancestor changes ('root', or 'address' for 'address.city'):
               // the selected slice may or may not have changed inside the
@@ -210,7 +221,7 @@ export function cervello <StoreValue extends Record<PropertyKey, any>> (
                 )
               })
             })) {
-              reRender()
+              if (needsRender) reRender()
               currentOptions?.onChange?.(storeChanges)
             }
           },

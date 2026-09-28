@@ -298,6 +298,11 @@ describe('[proxifyStore]', () => {
 
       ;(proxy as any).$$value = { id: 'subscriber-1', newValue: { name: 'seeded' } }
 
+      // Seeds are render-phase writes: the hook is deferred to a microtask
+      expect(capturedChanges.length).toBe(0)
+
+      await Promise.resolve()
+
       expect(capturedChanges.length).toBe(1)
       expect(capturedChanges[0].change.fieldPath).toBe('root')
       expect(capturedChanges[0].change.newValue).toEqual({ name: 'seeded' })
@@ -1118,6 +1123,189 @@ describe('[proxifyStore]', () => {
       expect(value.a.x).toBe(1)
       // The cycle is cut instead of cloned infinitely
       expect(value.a.child).toBe(null)
+    })
+  })
+
+
+  describe('captured nested proxies stay connected (live views of their path)', () => {
+    it('a child captured before `$value` replacement writes into the live store and emits', async () => {
+      const initial = { address: { city: 'A' }, other: 1 }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } }) as MutableStoreValue<typeof initial>
+      const address = proxy.address
+
+      proxy.$value = { address: { city: 'B' }, other: 2 }
+      capturedChanges = []
+
+      expect(address.city).toBe('B')
+
+      address.city = 'C'
+
+      expect(proxy.address.city).toBe('C')
+      expect(proxy[RAW_VALUE].address.city).toBe('C')
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('address.city')
+      expect(capturedChanges[0].storeValue).toBe(proxy[RAW_VALUE])
+      // Same identity as before the replacement
+      expect(proxy.address).toBe(address)
+    })
+
+    it('a grandchild captured before its parent is reassigned reads and writes the live object', async () => {
+      const initial = { p: { a: { v: 0 } } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+      const g = proxy.p.a
+
+      proxy.p = { a: { v: 1 } }
+      capturedChanges = []
+
+      expect(g.v).toBe(1)
+
+      g.v = 2
+
+      expect(proxy.p.a.v).toBe(2)
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('p.a.v')
+      expect(capturedChanges[0].change.previousValue).toBe(1)
+    })
+
+    it('writes through a detached child (its slot is no longer an object) are dropped, and it reconnects later', async () => {
+      const initial = { a: { x: 0 } as any }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+      const child = proxy.a
+
+      proxy.a = null
+      capturedChanges = []
+
+      child.x = 1
+
+      expect(capturedChanges.length).toBe(0)
+      expect(proxy[RAW_VALUE].a).toBe(null)
+
+      proxy.a = { x: 5 }
+      capturedChanges = []
+
+      child.x = 6
+
+      expect(proxy.a.x).toBe(6)
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('a.x')
+    })
+
+    it('spreading a proxy into its own slot (`store.a = { ...store.a, x }`) keeps the raw Proxy-free and stays reactive', async () => {
+      const initial = { a: { inner: { z: 1 }, x: 0 } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+      const inner = proxy.a.inner
+
+      proxy.a = { ...proxy.a, x: 1 }
+
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('a')
+
+      capturedChanges = []
+
+      // The captured proxy heals its slot on access
+      inner.z = 2
+
+      const rawInner = proxy[RAW_VALUE].a.inner
+
+      expect(rawInner[RAW_VALUE]).toBeUndefined()
+      expect(rawInner.z).toBe(2)
+      expect(proxy.a.inner).toBe(inner)
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('a.inner.z')
+
+      // Healing is lazy (on access): a parent read also heals the slot
+      proxy.a = { ...proxy.a, x: 2 }
+      expect(proxy.a.inner).toBe(inner)
+      expect(proxy[RAW_VALUE].a.inner[RAW_VALUE]).toBeUndefined()
+
+      proxy.a.inner.z = 3
+      expect(proxy.$value.a.inner.z).toBe(3)
+    })
+
+    it('mutually injected proxies do not overflow the stack and heal their slots', async () => {
+      const initial = { a: { n: { v: 'a' } }, b: { n: { v: 'b' } } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+      const an = proxy.a.n
+      const bn = proxy.b.n
+
+      proxy.a = { n: bn, y: 1 } as any
+      proxy.b = { n: an, y: 1 } as any
+
+      expect(() => an.v).not.toThrow()
+      expect(() => bn.v).not.toThrow()
+      expect(() => proxy.$value).not.toThrow()
+      expect(() => JSON.stringify(proxy)).not.toThrow()
+
+      const raw = proxy[RAW_VALUE]
+
+      expect(raw.a.n[RAW_VALUE]).toBeUndefined()
+      expect(raw.b.n[RAW_VALUE]).toBeUndefined()
+      // Proxies are live views of their path: `a.n` received b's data, and
+      // `an` (the view of `a.n`) already pointed at it when it was written
+      // into `b.n` — so both slots hold the same content
+      expect(proxy.a.n.v).toBe('b')
+      expect(proxy.b.n.v).toBe('b')
+      expect(an.v).toBe('b')
+      expect(bn.v).toBe('b')
+    })
+
+    it('`store.$value = { ...store, x }` does not leave Proxies inside the raw data', async () => {
+      const initial = { a: { b: { c: 1 } }, x: 0 }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<typeof initial>
+
+      void proxy.a.b
+
+      proxy.$value = { ...proxy, x: 1 }
+
+      const raw = proxy[RAW_VALUE]
+
+      expect(raw.x).toBe(1)
+      expect(raw.a[RAW_VALUE]).toBeUndefined()
+      expect(raw.a.b[RAW_VALUE]).toBeUndefined()
+      expect(raw.a.b.c).toBe(1)
+    })
+
+    it('`$value` stores a deep clone: mutating the assigned object afterwards does not touch the store', async () => {
+      const initial = { count: 0, nested: { v: 1 } }
+      const proxy = proxifyStore(store$$, initial) as MutableStoreValue<typeof initial>
+      const next = { count: 5, nested: { v: 2 } }
+
+      proxy.$value = next
+      next.count = 99
+      next.nested.v = 99
+
+      expect(proxy.count).toBe(5)
+      expect(proxy.nested.v).toBe(2)
+      expect(proxy[RAW_VALUE]).not.toBe(next)
+    })
+
+    it('a content-equal object written to a NEVER-READ field does not notify', async () => {
+      const initial = { meta: { tags: ['a'], n: 1 }, other: 0 }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+
+      proxy.meta = { n: 1, tags: ['a'] }
+
+      expect(capturedChanges.length).toBe(0)
+      // The write is skipped entirely: the previous raw is kept
+      expect(proxy[RAW_VALUE].meta).toBe(initial.meta)
+
+      proxy.meta = { n: 2, tags: ['a'] }
+
+      expect(capturedChanges.length).toBe(1)
+    })
+
+    it('`$value` on a nested proxy writes the object into its parent and emits the field path', async () => {
+      const initial = { address: { city: 'A', zip: 1 } }
+      const proxy = proxifyStore(store$$, initial, { afterChange: (c) => { capturedChanges.push(...c) } })
+      const address = proxy.address as MutableStoreValue<typeof initial.address>
+
+      address.$value = { city: 'B', zip: 2 }
+
+      expect(proxy.address.city).toBe('B')
+      expect(proxy[RAW_VALUE].address.zip).toBe(2)
+      expect(capturedChanges.length).toBe(1)
+      expect(capturedChanges[0].change.fieldPath).toBe('address')
+      expect(proxy.address).toBe(address)
     })
   })
 })

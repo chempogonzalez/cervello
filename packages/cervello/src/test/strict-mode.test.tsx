@@ -46,6 +46,35 @@ describe('[StrictMode]', () => {
   })
 
 
+  it('afterChange for an initialValue seed never runs during the render phase', async () => {
+    let rendering = false
+    const seenWhileRendering: Array<boolean> = []
+
+    const { useStore } = cervello({ count: 0 }, {
+      afterChange: () => { seenWhileRendering.push(rendering) },
+    })
+
+    function App (): JSX.Element {
+      rendering = true
+
+      const s = useStore({ initialValue: s => ({ ...s, count: 5 }) })
+      const view = <p data-testid='count'>{s.count}</p>
+
+      rendering = false
+
+      return view
+    }
+
+    render(<StrictMode><App /></StrictMode>)
+
+    await act(async () => { await sleep(20) })
+
+    expect(screen.getByTestId('count').textContent).toBe('5')
+    // Fired once (the second StrictMode seed is content-equal), outside the render
+    expect(seenWhileRendering).toEqual([false])
+  })
+
+
   it('setValueOnMount runs on each effect mount (twice) and the store converges', async () => {
     const { useStore } = cervello({ status: 'initial' })
     const setValueOnMount = vi.fn(async (s: { status: string }) => ({ ...s, status: 'loaded' }))

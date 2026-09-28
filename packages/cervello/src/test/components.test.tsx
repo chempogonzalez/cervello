@@ -384,8 +384,11 @@ describe('[_CERVELLO_]', () => {
         const content = screen.getByTestId('content')
         const otherContent = screen.getByTestId('content-2')
 
+        // OtherComponent renders AFTER the seed (same render pass) and reads
+        // the store live, so its first render already shows the seeded value:
+        // the flush finds it up to date (version check) and skips the re-render
         assertNumOfRenders(0)
-        assertNumOfRenders(1, 'other')
+        assertNumOfRenders(0, 'other')
 
         expect(renderedResultToString(content)).toContain('"type":"span"')
         // console.log({ otherContent: renderedResultToString(otherContent) })
@@ -394,7 +397,7 @@ describe('[_CERVELLO_]', () => {
         await sleep(100)
         // Wait for the next render to be sure that the initial value is set and it wasn't re-rendered
         assertNumOfRenders(0)
-        assertNumOfRenders(1, 'other')
+        assertNumOfRenders(0, 'other')
       })
 
 
@@ -1126,10 +1129,10 @@ describe('[_CERVELLO_]', () => {
       })
 
       it('  Refinement shields selected components from content-equal reassignments of NEVER-READ fields', async () => {
-        // A content-equal reassignment only becomes a no-op when the field has
-        // an existing child proxy (i.e. it was read at least once); otherwise
-        // it emits anyway. The value refinement keeps that emission from
-        // re-rendering selectors whose slice did not change
+        // A content-equal reassignment of a plain object is a no-op whether
+        // or not the field was ever read (no write, no emission). The value
+        // refinement additionally shields selectors whose slice did not
+        // change when the write is NOT content-equal
         const { store: localStore, useStore } = cervello({
           address: { city: 'Madrid', zip: '28001' },
           user: 'chempo',
@@ -1581,6 +1584,147 @@ describe('[_CERVELLO_]', () => {
         expect(valueAfterReset).toEqual(INITIAL_VALUE.links.nested.test)
         expect(renderedResultObjAfterReset).toEqual(Object.fromEntries(Object.entries(INITIAL_VALUE).filter(([,v]) => typeof v !== 'function')))
       })
+    })
+  })
+
+
+  describe('- [__stability__]', () => {
+    it('  a top-level field literally named `root` can be selected and re-renders on its writes', async () => {
+      const { store: localStore, useStore } = cervello({ root: 0, other: 0 })
+
+      const App = () => {
+        const [numOfRenders] = useLogRenders('App')
+        const s = useStore({ select: ['root'] })
+
+        return (
+          <div>
+            {numOfRenders}
+            <p data-testid='root-field'>{s.root}</p>
+          </div>
+        )
+      }
+
+      await act(() => { render(<App />) })
+
+      assertNumOfRenders(0)
+
+      await act(async () => {
+        localStore.root = 1
+        await sleep(20)
+      })
+
+      assertNumOfRenders(1)
+      expect(screen.getByTestId('root-field').textContent).toBe('1')
+
+      // Non-selected sibling: no re-render
+      await act(async () => {
+        localStore.other = 1
+        await sleep(20)
+      })
+
+      assertNumOfRenders(1)
+    })
+
+
+    it('  a nested proxy destructured in render keeps writing into the live store after reset()', async () => {
+      const { store: localStore, reset: localReset, useStore } = cervello({ address: { city: 'A' }, other: 0 })
+
+      let clicks = 0
+
+      const App = () => {
+        // Captured once per render; stays valid even if this component does
+        // not re-render on reset() (its selected slice may be unchanged)
+        const { address } = useStore({ select: ['address.*'] })
+
+        return (
+          <button
+            data-testid='btn'
+            onClick={() => { clicks++; address.city = `C${clicks}` }}
+          >
+            {address.city}
+          </button>
+        )
+      }
+
+      await act(() => { render(<App />) })
+
+      await act(async () => {
+        localStore.other = 1
+        localReset()
+        await sleep(20)
+      })
+
+      await act(async () => {
+        await userEvent.click(screen.getByTestId('btn'))
+        await sleep(20)
+      })
+
+      expect(localStore.address.city).toBe('C1')
+      expect(localStore.$value.address.city).toBe('C1')
+      expect(screen.getByTestId('btn').textContent).toBe('C1')
+    })
+
+
+    it('  a nested object set to null is seen as null by the next render; only a handle captured by an earlier render keeps its last raw', async () => {
+      const initial: { user: { name: string } | null } = { user: { name: 'Ana' } }
+      const { store: localStore, useStore } = cervello(initial)
+
+      let captured: any
+
+      const App = () => {
+        const [numOfRenders] = useLogRenders('App')
+        const { user } = useStore()
+
+        captured = user
+
+        return (
+          <div>
+            {numOfRenders}
+            <p data-testid='name'>{user === null ? 'null' : user.name}</p>
+          </div>
+        )
+      }
+
+      await act(() => { render(<App />) })
+
+      assertNumOfRenders(0)
+      expect(screen.getByTestId('name').textContent).toBe('Ana')
+
+      const handle = captured
+
+      await act(async () => {
+        localStore.user = null
+        await sleep(20)
+      })
+
+      // The re-render reads the slot fresh from the root: it gets null, not
+      // the old child proxy
+      assertNumOfRenders(1)
+      expect(screen.getByTestId('name').textContent).toBe('null')
+      expect(captured).toBe(null)
+
+      // The handle captured by the previous render is detached: it reads its
+      // last raw instead of throwing, and its writes are dropped (no
+      // emission, no re-render, store untouched)
+      expect(handle.name).toBe('Ana')
+
+      handle.name = 'Bea'
+      await sleep(20)
+
+      assertNumOfRenders(1)
+      expect(localStore.$value.user).toBe(null)
+
+      // The slot holds an object again: the render sees it and the old
+      // handle (same child proxy identity) reconnects to it
+      await act(async () => {
+        localStore.user = { name: 'Cris' }
+        await sleep(20)
+      })
+
+      assertNumOfRenders(2)
+      expect(screen.getByTestId('name').textContent).toBe('Cris')
+      expect(captured).toBe(handle)
+      expect(handle.name).toBe('Cris')
     })
   })
 })

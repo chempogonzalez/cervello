@@ -8,8 +8,8 @@ import { cervello } from '../../lib/store/new-index'
 describe('proxy hot paths', () => {
   const { store: reassignStore } = cervello({ position: { x: 0, y: 0 }, other: 'value' })
 
-  // Read once so the child proxy exists and reassignments go through the
-  // existing-proxy `$value` path (the contentComparer hot path)
+  // Read once so the child proxy exists (its identity is kept across the
+  // reassignments); the contentComparer runs on every object write regardless
   void reassignStore.position.x
 
   let i = 0

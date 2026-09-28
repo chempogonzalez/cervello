@@ -17,6 +17,8 @@ export type CacheableSubject<T> = {
   subscribe: (observer: Observer<T>) => Subscription
   next: (value: T, subscriberId?: string) => void
   version: () => number
+  // Same counter as `version()`, readable without a call (proxy hot path)
+  state: { version: number }
 }
 
 export function createCacheableSubject<T> (): CacheableSubject<T> {
@@ -24,7 +26,7 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
   let isFlushing = false
   // Monotonic write counter, bumped at write time (not flush time) so a
   // subscriber can detect changes emitted before its subscription existed
-  let version = 0
+  const state = { version: 0 }
   // True when any queued item carries a subscriberId (self-notification
   // exclusion needed): tracked at write time to pick the flush fast path
   let hasIds = false
@@ -40,7 +42,7 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
     *    identifier for the subscriber that triggered the update, used to prevent self-notifications. (usage in initialValue)
     */
   function next (newValue: T, subscriberId?: string): void {
-    version++
+    state.version++
 
     if (subscriberId !== undefined) hasIds = true
     updateList.push({ newValue, subscriberId })
@@ -63,6 +65,18 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
     }
   }
 
+
+
+  // A subscriber that throws (typically a user `onChange`) must not break the
+  // delivery loop nor leave `isFlushing` stuck: the error is re-thrown from
+  // its own microtask (reaches window.onerror) and the flush carries on
+  function deliver (observer: Observer<T>, values: Array<T>): void {
+    try {
+      observer.next(values)
+    } catch (err) {
+      queueMicrotask(() => { throw err })
+    }
+  }
 
 
   // Hoisted (instead of a fresh closure per scheduled flush) and reused by
@@ -100,7 +114,7 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
 
       for (let i = 0; i < observersSnapshot.length; i++) {
         if (observersSnapshot[i].id !== undefined)
-          observersSnapshot[i].next(values)
+          deliver(observersSnapshot[i], values)
       }
     } else {
       for (let i = 0; i < observersSnapshot.length; i++) {
@@ -113,7 +127,7 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
         }
 
         if (filtered.length > 0)
-          observer.next(filtered)
+          deliver(observer, filtered)
       }
     }
 
@@ -135,5 +149,5 @@ export function createCacheableSubject<T> (): CacheableSubject<T> {
 
 
 
-  return { next, subscribe, version: () => version }
+  return { next, subscribe, version: () => state.version, state }
 }

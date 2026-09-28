@@ -6,8 +6,6 @@ import type { CacheableSubject } from '../utils/subject'
 
 
 
-const ROOT_VALUE = Symbol('value')
-
 // INFO: !Internal only.
 // Read through a proxy of this store, returns the raw object it currently wraps
 export const RAW_VALUE = Symbol('rawValue')
@@ -18,30 +16,96 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
   objectToProxify: T,
   opts: {
     nestedFieldPath?: string
-    parentObjectToProxify?: any
+    // Nested proxies only: the parent's `live` resolver, the parent proxy
+    // itself and the key this proxy sits under
+    parent?: () => any
+    parentProxy?: any
+    key?: PropertyKey
+    // Live raw of the whole store (for `storeValue` in emitted changes)
+    rootRaw?: () => any
     afterChange?: (storeChange: Array<StoreChange<T>>) => void
   } = {},
 ): T {
   const fieldPath = opts.nestedFieldPath ?? 'root'
+  const isRoot = opts.parent === undefined
+  const key = opts.key as PropertyKey
 
   // Emitted paths are root-relative: precomputing the prefix (dropping the
   // leading 'root.') avoids a string scan + replace on every write
-  const emitPrefix = fieldPath === 'root' ? '' : `${fieldPath.slice(5)}.`
+  const emitPrefix = isRoot ? '' : `${fieldPath.slice(5)}.`
 
-  const objectWithRootValue = {
-    [ROOT_VALUE]: objectToProxify,
-  } as unknown as T
+  // The Proxy target is just a shell: the data lives in the `raw` closure
+  const shell = {} as unknown as T
 
   // Child proxies are cached here (keyed by property name) instead of being
   // written back into the raw data, so the store data never holds Proxy
-  // instances and clones/serializations traverse plain objects without traps.
-  // The raw value each proxy wraps is cached alongside it: revalidating with
-  // `entry.raw` avoids re-entering the child's get trap on every read
+  // instances. Entries are never dropped: a child proxy is a live view of
+  // `parent[key]` (see `resolveRaw`), so its identity survives reassigning the
+  // field and even replacing the whole store. The raw the slot held when the
+  // entry was last refreshed is kept for the read fast path
   const childProxies = new Map<PropertyKey, { proxy: any, raw: any }>()
 
-  // Created once per proxy (a fresh closure per read was allocated before);
-  // reads the live root so it stays correct after `$value` replacement
-  const toJson = (): any => safeToJson((objectWithRootValue as any)[ROOT_VALUE])
+  // Raw object this proxy currently wraps (the root's is the whole store)
+  let raw: any = objectToProxify
+  let isDetached = false
+  // Store version a nested proxy last resolved its slot at
+  // every store mutation bumps it, so while it is unchanged `raw` is still the live one
+  // and reads pay a single property compare (no call)
+  let seenVersion = -1
+
+  // Cold path (nested proxies, after a store write)
+  // re-read the slot on the parent's live raw.
+  // When the field, an ancestor or the whole store
+  // ($value / reset / initialValue seed) was reassigned, a captured handle
+  // keeps reading and writing the live data instead of a disconnected
+  // object. Proxies of this store injected as data (e.g.
+  // `store.a = { ...store.a }` spreads child proxies) are healed on the way
+  const revalidate = (): void => {
+    // Set before walking
+    // healing a proxy reads through its traps, which may
+    // resolve back into this one (self or mutual injection) — the re-entry
+    // then sees an up-to-date version and answers with the current raw
+    seenVersion = store$$.state.version
+
+    // The root IS the live data: nothing to walk (keeps the hot-path check
+    // below free of an `isRoot` branch)
+    if (isRoot) return
+
+    const parent = opts.parent!()
+    let liveValue = parent === undefined ? undefined : parent[key]
+
+    if (liveValue !== raw && isValidReactiveObject(liveValue)) {
+      const injected = liveValue[RAW_VALUE]
+
+      if (injected) parent[key] = liveValue = injected
+
+      raw = liveValue
+    }
+
+    // The slot no longer holds an object (null, primitive, array,
+    // nonReactive, React element) or an ancestor is gone
+    isDetached = liveValue !== raw
+  }
+
+  const resolveRaw = (): any => {
+    if (store$$.state.version !== seenVersion) revalidate()
+
+    return raw
+  }
+
+  // Same as `resolveRaw` but undefined when this path no longer exists in the store
+  // writes through a detached proxy are dropped instead of emitting a
+  // change that is not in the store
+  const liveRawObject = (): any => {
+    const value = resolveRaw()
+
+    return isDetached ? undefined : value
+  }
+
+  const rootRaw = opts.rootRaw ?? ((): any => raw)
+
+  // Created once per proxy (a fresh closure per read was allocated before)
+  const toJson = (): any => safeToJson(resolveRaw())
 
   // Bound functions are cached per raw function so repeated reads return the
   // same reference (stable identity for React deps) instead of re-binding on
@@ -49,13 +113,21 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
   // different function re-binds automatically
   const boundFunctions = new WeakMap<(...args: Array<any>) => any, (...args: Array<any>) => any>()
 
-  const rootFunctions = fieldPath === 'root'
+  const rootFunctions = isRoot
     ? Object.fromEntries(Object.entries(objectToProxify).filter(([,v]) => typeof v === 'function'))
     : {}
 
-  return new Proxy(objectWithRootValue, {
-    get (targetObject, propName, receiver) {
-      const target = targetObject[ROOT_VALUE]
+  const emit = (change: StoreChange<T>): void => {
+    store$$.next(change)
+    opts.afterChange?.([change])
+  }
+
+  return new Proxy(shell, {
+    get (_, propName, receiver) {
+      // Inlined `resolveRaw()`: this is the hottest path of the library
+      if (store$$.state.version !== seenVersion) revalidate()
+
+      const target = raw
 
       if (typeof propName === 'symbol') {
         if (propName === RAW_VALUE) return target
@@ -76,7 +148,7 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       if (propName === '$value')
         return deepClone(target)
 
-      const propertyValue = target[propName]
+      let propertyValue = target[propName]
 
       if (typeof propertyValue === 'function') {
         let boundFunction = boundFunctions.get(propertyValue)
@@ -92,32 +164,43 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
       }
 
       if (propertyValue !== null && typeof propertyValue === 'object') {
-        // Cache first: while the entry wraps the current raw value, repeated
-        // reads keep the same proxy identity and skip every probe below
-        const cachedEntry = childProxies.get(propName)
+        const entry = childProxies.get(propName)
 
-        if (cachedEntry !== undefined && cachedEntry.raw === propertyValue) return cachedEntry.proxy
+        if (entry !== undefined && entry.raw === propertyValue) return entry.proxy
 
         // Check if it's correct to be a reactive object
         // & is not a circular reference or the same object
         if (isValidReactiveObject(propertyValue) && propertyValue !== target) {
-          // Proxy of this store injected as data by the user: return it untouched
-          if (propertyValue[RAW_VALUE]) return propertyValue
+          // Proxy of this store injected as data by the user: heal the slot
+          // with the raw object it wraps, so the store data stays Proxy-free
+          const injectedProxy = propertyValue[RAW_VALUE]
 
-          // Create a new proxified object
-          const proxiedNestedObject = proxifyStore(
+          if (injectedProxy) target[propName] = propertyValue = injectedProxy
+
+          // Reassigned field: keep the child's identity (it resolves the new
+          // raw on its own) and just refresh the fast-path key
+          if (entry !== undefined) {
+            entry.raw = propertyValue
+
+            return entry.proxy
+          }
+
+          const child = proxifyStore(
             store$$ as any,
             propertyValue,
             {
               nestedFieldPath: `${fieldPath}.${propName}`,
-              parentObjectToProxify: opts.parentObjectToProxify ?? target,
+              parent: liveRawObject,
+              parentProxy: receiver,
+              key: propName,
+              rootRaw,
               afterChange: opts.afterChange,
             },
           )
 
-          childProxies.set(propName, { proxy: proxiedNestedObject, raw: propertyValue })
+          childProxies.set(propName, { proxy: child, raw: propertyValue })
 
-          return proxiedNestedObject
+          return child
         }
       }
 
@@ -125,8 +208,8 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
     },
 
 
-    set (parentObject, key, newValue) {
-      if (typeof key === 'symbol') return true
+    set (_, propName, newValue) {
+      if (typeof propName === 'symbol') return true
 
       // Keep raw data clean: if a proxy of this store is assigned as a value,
       // store the raw object it wraps instead of the Proxy instance (the
@@ -137,16 +220,15 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
 
       // INFO: !Internal only.
       // Used to set the value of the store without notifying the current subscriber (value.id)
-      if (key === '$$value') {
-        const previousValue = parentObject[ROOT_VALUE];
+      if (propName === '$$value' && isRoot) {
+        const previousValue = raw
 
         // Same merge as `$value`: top-level store functions are preserved when
         // the new value (e.g. from useStore's initialValue) does not include them
-        (parentObject as any)[ROOT_VALUE] = Object.assign({}, rootFunctions, value.newValue)
-        childProxies.clear()
+        raw = Object.assign({}, rootFunctions, deepClone(value.newValue))
 
         const seedChange = {
-          storeValue: parentObject[ROOT_VALUE],
+          storeValue: raw,
           change: {
             fieldPath: 'root' as any,
             newValue: value.newValue,
@@ -155,99 +237,81 @@ export function proxifyStore <T extends Record<string | symbol, any>> (
         }
 
         store$$.next(seedChange, value.id)
-        opts.afterChange?.([seedChange])
+
+        // Seeds are render-phase writes (useStore's initialValue): the hook is
+        // deferred so user code never runs inside a React render
+        if (opts.afterChange) queueMicrotask(() => { opts.afterChange!([seedChange]) })
 
         return true
       }
 
-      if (key === '$value') {
-        const previousValue = parentObject[ROOT_VALUE]
+      if (propName === '$value') {
+        // Nested: replacing this object is a plain write into the parent
+        if (!isRoot) {
+          opts.parentProxy[key] = value
 
-        if (value === previousValue) return true
-
-        if (contentComparer(value, previousValue)) return true
-
-        if (fieldPath !== 'root') {
-          (parentObject as any)[ROOT_VALUE] = value
-          childProxies.clear()
-        } else {
-          // Object.assign instead of spread: it avoids shipping Babel's
-          // `_extends` helper in the bundle
-          (parentObject as any)[ROOT_VALUE] = Object.assign({}, rootFunctions, value)
-          childProxies.clear()
-
-          const rootChange = {
-            // To be disabled for performance and send same store reference
-            // storeValue: JSON.parse(JSON.stringify(targetObject[ROOT_VALUE])),
-            storeValue: parentObject[ROOT_VALUE],
-            change: {
-              fieldPath: 'root' as any,
-              newValue: value,
-              previousValue,
-            },
-          }
-
-          store$$.next(rootChange)
-          opts.afterChange?.([rootChange])
+          return true
         }
 
+        const previousValue = raw
+
+        if (value === previousValue || contentComparer(value, previousValue)) return true
+
+        // Cloned like the initial value: the store never aliases the caller's
+        // object and any proxies spread into it (`{ ...store }`) are unwrapped.
+        // Object.assign instead of spread: it avoids shipping Babel's
+        // `_extends` helper in the bundle
+        raw = Object.assign({}, rootFunctions, deepClone(value))
+
+        emit({
+          storeValue: raw,
+          change: {
+            fieldPath: 'root' as any,
+            newValue: value,
+            previousValue,
+          },
+        })
+
         return true
       }
 
-      const realInnerObject = parentObject[ROOT_VALUE]
-      const previousValue = realInnerObject[key]
+      const validRawObject = liveRawObject()
 
+      // Detached handle (its path is gone from the store): drop the write
+      if (validRawObject === undefined) return true
+
+      const previousValue = validRawObject[propName]
 
       if (previousValue === value) return true
 
-      const existingEntry = childProxies.get(key)
+      // Content-equal object writes are no-ops (arrays, nonReactive objects
+      // and React elements always notify)
+      if (isValidReactiveObject(value) && contentComparer(value, previousValue)) return true
 
-      // New object values, check if the field has already a proxy created to use it instead of recreating a new instance
-      if (isValidReactiveObject(value) && existingEntry) {
-        existingEntry.proxy.$value = value
+      validRawObject[propName] = value
 
-        const newRaw = existingEntry.proxy[RAW_VALUE]
-
-        // Same contract as `$value`: the child keeps its previous raw object
-        // when the new value is content-equal, so nothing changed — skip the
-        // write and the (previously spurious) notification
-        if (newRaw === previousValue) return true
-
-        existingEntry.raw = newRaw
-        realInnerObject[key] = newRaw
-      } else {
-        if (existingEntry) childProxies.delete(key)
-        realInnerObject[key] = value
-      }
-
-
-      const nextStoreChange = {
-        // To be disabled for performance and send same store reference
-        // storeValue: JSON.parse(JSON.stringify(opts?.parentObjectToProxify ?? target)),
-        storeValue: opts?.parentObjectToProxify ?? realInnerObject,
+      emit({
+        storeValue: rootRaw(),
         change: {
-          fieldPath: (emitPrefix + key) as any,
+          fieldPath: (emitPrefix + propName) as any,
           newValue: value,
           previousValue,
         },
-      }
-
-      store$$.next(nextStoreChange)
-      opts.afterChange?.([nextStoreChange])
+      })
 
       return true
     },
 
-    has (t, p) {
-      return Reflect.has(t[ROOT_VALUE], p)
+    has (_, p) {
+      return Reflect.has(resolveRaw(), p)
     },
 
-    ownKeys (t) {
-      return Reflect.ownKeys(t[ROOT_VALUE])
+    ownKeys () {
+      return Reflect.ownKeys(resolveRaw())
     },
 
-    getOwnPropertyDescriptor (t, p) {
-      return Reflect.getOwnPropertyDescriptor(t[ROOT_VALUE], p)
+    getOwnPropertyDescriptor (_, p) {
+      return Reflect.getOwnPropertyDescriptor(resolveRaw(), p)
     },
 
   })
